@@ -4,19 +4,19 @@ import { conn, queryAsync } from "../dbconnect";
 
 export const router = express.Router();
 
-router.get("/", (req, res) => {
-  if (req.query.id) {
-    res.send("Get in trip.ts Query id: " + req.query.id);
-  } else {
-    res.send("Get in trip.ts");
-  }
-});
+// router.get("/", (req, res) => {
+//   if (req.query.id) {
+//     res.send("Get in trip.ts Query id: " + req.query.id);
+//   } else {
+//     res.send("Get in trip.ts");
+//   }
+// });
 
 router.get("/:id", (req, res) => {
   res.send("Get in trip.ts id: " + req.params.id);
 });
 
-router.get("/getfarmer", (req, res) => {
+router.get("/", (req, res) => {
   conn.query('select * from Farmers', (err, result, fields)=>{
     res.json(result);
   });

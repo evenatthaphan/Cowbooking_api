@@ -12,9 +12,9 @@ export const router = express.Router();
 //   }
 // });
 
-router.get("/:id", (req, res) => {
-  res.send("Get in trip.ts id: " + req.params.id);
-});
+// router.get("/:id", (req, res) => {
+//   res.send("Get in trip.ts id: " + req.params.id);
+// });
 
 //get farmer
 router.get("/getfarmer", (req, res) => {

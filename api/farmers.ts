@@ -16,8 +16,16 @@ router.get("/:id", (req, res) => {
   res.send("Get in trip.ts id: " + req.params.id);
 });
 
+//get farmer
 router.get("/getfarmer", (req, res) => {
-  conn.query('select * from Farmers', (err, result, fields)=>{
+  conn.query('SELECT * FROM Farmers', (err, result, fields) => {
+    if (err) {
+      console.error("DB Query Error:", err);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "No farmers found" });
+    }
     res.json(result);
   });
 });

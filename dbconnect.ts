@@ -7,7 +7,8 @@ export const conn = mysql.createPool(
         host: "mysql-cowbooking.alwaysdata.net",
         user: "427073",
         password: "Natthaphan2246@",
-        database: "cowbooking_db1"
+        database: "cowbooking_db1",
+        port: 3306
     }
 );
 

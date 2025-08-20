@@ -16,7 +16,7 @@ router.get("/:id", (req, res) => {
   res.send("Get in trip.ts id: " + req.params.id);
 });
 
-router.get("/", (req, res) => {
+router.get("/getfarmer", (req, res) => {
   conn.query('select * from Farmers', (err, result, fields)=>{
     res.json(result);
   });

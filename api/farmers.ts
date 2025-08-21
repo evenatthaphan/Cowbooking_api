@@ -18,7 +18,7 @@ export const router = express.Router();
 
 //get farmer
 router.get("/getfarmer", (req, res) => {
-  conn.query('SELECT * FROM Farmers', (err, result, fields) => {
+  conn.query("SELECT * FROM Farmers", (err, result, fields) => {
     if (err) {
       console.error("DB Query Error:", err);
       return res.status(500).json({ message: "Internal Server Error" });
@@ -30,18 +30,32 @@ router.get("/getfarmer", (req, res) => {
   });
 });
 
-
 //post register
 router.post("/register", (req, res) => {
-  let Farmer: FarmerPostRequest = req.body;
-  const sql =
-    "INSERT INTO Farmers (farm_name, farm_password , phonenumber, farmer_email, profile_image, farm_address) VALUES (?, ? , ?,'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',?)";
-  conn.query(sql, [Farmer.farm_name, Farmer.farm_password, Farmer.phonenumber,Farmer.farmer_email, Farmer.farm_address], (err, result) => {
-    if (err) {
-      console.error("Error inserting user:", err);
-      res.status(500).json({ error: "Error inserting user" });
-    } else {
-      res.status(201).json({ affected_row: result.affectedRows });
+  let Farmer = req.body; // สมมุติว่า body มี farm_name, farm_password, phonenumber, farmer_email, farm_address
+
+  const sql = `
+    INSERT INTO Farmers 
+      (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
+    VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
+  `;
+
+  conn.query(
+    sql,
+    [
+      Farmer.farm_name,
+      Farmer.farm_password,
+      Farmer.phonenumber,
+      Farmer.farmer_email,
+      Farmer.farm_address,
+    ],
+    (err, result) => {
+      if (err) {
+        console.error("Error inserting user:", err);
+        res.status(500).json({ error: "Error inserting user" });
+      } else {
+        res.status(201).json({ affected_row: result.affectedRows });
+      }
     }
-  });
+  );
 });

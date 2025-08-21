@@ -20,5 +20,8 @@ export const app = express();
 //   res.send("Hello World!!!");
 // });
 
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
+
 app.use("/", index);
 app.use("/farmer", farmers);

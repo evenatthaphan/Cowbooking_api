@@ -30,9 +30,16 @@ router.get("/getfarmer", (req, res) => {
   });
 });
 
+
 //post register
 router.post("/register", (req, res) => {
-  let Farmer = req.body; // สมมุติว่า body มี farm_name, farm_password, phonenumber, farmer_email, farm_address
+  console.log("req.body:", req.body);   // 👈 debug
+
+  let Farmer = req.body;
+
+  if (!Farmer.farm_name) {
+    return res.status(400).json({ error: "farm_name is required", body: Farmer });
+  }
 
   const sql = `
     INSERT INTO Farmers 

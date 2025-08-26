@@ -9,6 +9,17 @@ export interface FarmerPostRequest {
 }
 
 
+export interface VetExpertPostRequest {
+    id: number;
+    VetExpert_name: string;
+    VetExpert_password: string;
+    phonenumber: number;
+    VetExpert_email: string;
+    profile_image: string;
+    VetExpert_address: string;
+    VetExpert_PL: string;
+}
+
 
 
 

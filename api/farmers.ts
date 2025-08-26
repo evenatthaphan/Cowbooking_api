@@ -75,8 +75,8 @@ router.post("/register", (req, res) => {
       ],
       (err, result) => {
         if (err) {
-          console.error("Error inserting user:", err);
-          res.status(500).json({ error: "Error inserting user" });
+          console.error("Error inserting Farmer:", err);
+          res.status(500).json({ error: "Error inserting Farmer" });
         } else {
           res.status(201).json({ affected_row: result.affectedRows });
         }

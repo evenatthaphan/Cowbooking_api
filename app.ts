@@ -3,6 +3,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import { router as index } from "./api/index";
 import { router as farmers } from "./api/farmers";
+import { router as vetexpert } from "./api/VetExpert"
 //import cors from "cors";
 
 // Object app => webApi
@@ -25,3 +26,4 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/", index);
 app.use("/farmer", farmers);
+app.use("/vet", vetexpert);

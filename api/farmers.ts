@@ -33,36 +33,55 @@ router.get("/getfarmer", (req, res) => {
 
 //post register
 router.post("/register", (req, res) => {
-  console.log("req.body:", req.body);   // 👈 debug
+  console.log("req.body:", req.body);
 
   let Farmer = req.body;
 
   if (!Farmer.farm_name) {
     return res.status(400).json({ error: "farm_name is required", body: Farmer });
   }
+  if (!Farmer.phonenumber) {
+    return res.status(400).json({ error: "phonenumber is required" });
+  }
 
-  const sql = `
-    INSERT INTO Farmers 
-      (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
-    VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
-  `;
-
-  conn.query(
-    sql,
-    [
-      Farmer.farm_name,
-      Farmer.farm_password,
-      Farmer.phonenumber,
-      Farmer.farmer_email,
-      Farmer.farm_address,
-    ],
-    (err, result) => {
-      if (err) {
-        console.error("Error inserting user:", err);
-        res.status(500).json({ error: "Error inserting user" });
-      } else {
-        res.status(201).json({ affected_row: result.affectedRows });
-      }
+  //ตรวจสอบก่อนว่าเบอร์นี้มีในระบบหรือยัง
+  const checkSql = "SELECT * FROM Farmers WHERE phonenumber = ?";
+  conn.query(checkSql, [Farmer.phonenumber], (err, rows) => {
+    if (err) {
+      console.error("Error checking phonenumber:", err);
+      return res.status(500).json({ error: "Error checking phonenumber" });
     }
-  );
+
+    if (rows.length > 0) {
+      // ถ้ามีแล้ว
+      return res.status(400).json({ error: "Phonenumber already exists" });
+    }
+
+    // 2) ถ้าไม่มี -> INSERT ได้
+    const sql = `
+      INSERT INTO Farmers 
+        (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
+      VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
+    `;
+
+    conn.query(
+      sql,
+      [
+        Farmer.farm_name,
+        Farmer.farm_password,
+        Farmer.phonenumber,
+        Farmer.farmer_email,
+        Farmer.farm_address,
+      ],
+      (err, result) => {
+        if (err) {
+          console.error("Error inserting user:", err);
+          res.status(500).json({ error: "Error inserting user" });
+        } else {
+          res.status(201).json({ affected_row: result.affectedRows });
+        }
+      }
+    );
+  });
 });
+

@@ -1,6 +1,7 @@
 import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
+import mysql from "mysql";
 
 export const router = express.Router();
 
@@ -112,4 +113,87 @@ router.get("/login", async (req, res) => {
     res.json(result);
   });
 });
+
+
+
+//edit profile
+router.put("/edit:id", async (req, res) => {
+  //Receive data from request
+  const id = +req.params.id;
+  let farmer: FarmerPostRequest = req.body;
+
+  //Query original data by id
+  let farmerOriginal: FarmerPostRequest | undefined;
+  let sql = mysql.format("select * from Farmers where id =? ", [id]);
+  let result = await queryAsync(sql);
+  const jsonStr = JSON.stringify(result);
+  const jsonObj = JSON.parse(jsonStr);
+  const rawData = jsonObj;
+  farmerOriginal = rawData[0];
+
+  //Merge received object to original
+  const updataFarmer = { ...farmerOriginal, ...farmer };
+
+  //update data in tabel
+  sql =
+    "update  `Farmers` set `farm_name`=?,`phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? where `id`=?";
+  sql = mysql.format(sql, [
+    updataFarmer.farm_name,
+    updataFarmer.phonenumber,
+    updataFarmer.farmer_email,
+    updataFarmer.farmer_email,
+    updataFarmer.profile_image,
+    id,
+  ]);
+  conn.query(sql, (err, result) => {
+    if (err) throw err;
+    res.status(200).json({ affected_row: result.affectedRows });
+  });
+});
+
+
+// change password
+router.put("/changepass/:id", async (req, res) => {
+  const id = +req.params.id;
+  const { old_password, new_password } = req.body;
+
+  // ตรวจสอบว่ามีการส่งรหัสผ่านมาครบ
+  if (!old_password || !new_password) {
+    return res.status(400).json({ error: "old_password and new_password are required" });
+  }
+
+  try {
+    let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
+    let result = await queryAsync(sql) as FarmerPostRequest[];
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ error: "Farmer not found" });
+    }
+
+    const farmerOriginal = result[0];
+
+    // เช็ครหัสผ่านเดิม
+    if (farmerOriginal.farm_password !== old_password) {
+      return res.status(400).json({ error: "Old password is incorrect" });
+    }
+
+    // อัปเดตรหัสผ่านใหม่
+    const updateSql = "UPDATE Farmers SET farm_password = ? WHERE id = ?";
+    conn.query(updateSql, [new_password, id], (err, updateResult) => {
+      if (err) {
+        console.error("Error updating password:", err);
+        return res.status(500).json({ error: "Error updating password" });
+      }
+
+      res.json({ message: "Password updated successfully" });
+    });
+
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+
 

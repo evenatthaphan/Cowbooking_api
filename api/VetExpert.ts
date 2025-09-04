@@ -75,3 +75,14 @@ router.post("/register", (req, res) => {
     );
   });
 });
+
+
+//login
+router.get("/login", async (req, res) => {
+  const username = req.query.username;
+  const password = req.query.password;
+  const sql = "SELECT * FROM VetExperts WHERE VetExpert_name = ? AND VetExpert_password = ?";
+  conn.query(sql, [username, password], (err, result) => {
+    res.json(result);
+  });
+});

@@ -21,6 +21,30 @@ export interface VetExpertPostRequest {
 }
 
 
+export interface BullSiresPostRequest {
+    id: number;
+    Bullname: string;
+    Bullbreed: string;
+    Bullage: number;
+    characteristics: string;
+    farm_id : number;  //reference 
+    price_per_dose: number;
+    semen_stock: number;
+    contest_records: string;
+    added_by: number;  //reference 
+}
+
+
+export interface FarmsPostRequest {
+    id: number;
+    name: string;
+    province: string;
+    district: string;
+    locality: string;
+    address: string;
+}
+
+
 
 
 

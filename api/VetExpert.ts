@@ -1,6 +1,7 @@
 import express from "express";
 import { VetExpertPostRequest } from "../model/data_post_request"
 import { conn, queryAsync } from "../dbconnect";
+import { error } from "console";
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
@@ -104,3 +105,55 @@ router.get("/login", async (req, res) => {
     res.json(result);
   });
 });
+
+
+// insert farm
+router.post("/insertfarm", (req, res) => {
+  console.log("req.body:", req.body);
+
+  let Farms = req.body;
+
+  // ตรวจสอบว่ามี address ไหม
+  if (!Farms.address) {
+    return res.status(400).json({ error: "address is required", body: Farms });
+  }
+
+  // เช็คว่ามี address ซ้ำหรือยัง
+  const checking = "SELECT * FROM Farms WHERE address = ?";
+  conn.query(checking, [Farms.address], (err, rows) => {
+    if (err) {
+      console.error("Error checking address:", err);
+      return res.status(500).json({ error: "Error checking address" });
+    }
+
+    if (rows.length > 0) {
+      // มี address ซ้ำแล้ว
+      return res.status(400).json({ error: "address already exists" });
+    }
+
+    // ถ้าไม่มีซ้ำ -> insert
+    const sql = `
+      INSERT INTO Farms (name, province, district, locality, address)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    conn.query(
+      sql,
+      [Farms.name, Farms.province, Farms.district, Farms.locality, Farms.address],
+      (err, result) => {
+        if (err) {
+          console.error("Error inserting farm:", err);
+          return res.status(500).json({ error: "Error inserting farm" });
+        }
+        res.status(201).json({
+          message: "Farm inserted successfully",
+          farmId: result.insertId,
+        });
+      }
+    );
+  });
+});
+
+
+
+

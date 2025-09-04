@@ -21,6 +21,24 @@ router.get("/getVetExperts", (req, res) => {
 });
 
 
+//get where id 
+router.get("/getVetExperts/:id", (req, res) => {
+  const farmerId = req.params.id; // ดึงค่าที่ส่งมา
+  const sql = "SELECT * FROM VetExperts WHERE id = ?"; 
+
+  conn.query(sql, [farmerId], (err, result, fields) => {
+    if (err) {
+      console.error("DB Query Error:", err);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "Farmer not found" });
+    }
+    res.json(result[0]); // ส่งแค่ตัวเดียว
+  });
+});
+
+
 //post register
 router.post("/register", (req, res) => {
   console.log("req.body:", req.body);

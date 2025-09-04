@@ -21,7 +21,7 @@ router.get("/getVetExperts", (req, res) => {
 });
 
 
-//get where id 
+//getVetExperts where id 
 router.get("/getVetExperts/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
   const sql = "SELECT * FROM VetExperts WHERE id = ?"; 

@@ -154,8 +154,8 @@ router.put("/edit/:id", async (req, res) => {
     updataFarmer.farm_name,
     updataFarmer.phonenumber,
     updataFarmer.farmer_email,
-    updataFarmer.farmer_email,
     updataFarmer.profile_image,
+    updataFarmer.farm_address,
     id,
   ]);
   conn.query(sql, (err, result) => {
@@ -184,9 +184,13 @@ router.put("/changepass/:id", async (req, res) => {
     }
 
     const farmerOriginal = result[0];
+    console.log("old_password from request:", old_password);
+    console.log("stored hash from DB:", farmerOriginal.farm_password);
 
     // เทียบรหัสผ่านเดิม
     const isMatch = await bcrypt.compare(old_password, farmerOriginal.farm_password);
+    console.log("isMatch result:", isMatch);
+
     if (!isMatch) {
       return res.status(400).json({ error: "Old password is incorrect" });
     }

@@ -130,7 +130,7 @@ router.get("/login", async (req, res) => {
 
 
 // edit profile *****
-router.put("/edit:id", async (req, res) => {
+router.put("/edit/:id", async (req, res) => {
 
   const id = +req.params.id;
   let farmer: FarmerPostRequest = req.body;

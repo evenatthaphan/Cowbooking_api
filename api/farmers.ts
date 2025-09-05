@@ -125,8 +125,8 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "username and password are required" });
   }
 
-  const sql = "SELECT * FROM Farmers WHERE farm_name = ? and farm_password = ?";
-  conn.query(sql, [username, password], async (err, result) => {
+  const sql = "SELECT * FROM Farmers WHERE farm_name = ?";
+  conn.query(sql, [username], async (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     if (result.length === 0) return res.status(400).json({ error: "User not found" });
 

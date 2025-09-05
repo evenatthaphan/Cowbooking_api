@@ -166,7 +166,7 @@ router.put("/edit:id", async (req, res) => {
 
 
 // change password *****
-router.put("/changepass:id", async (req, res) => {
+router.put("/changepass/:id", async (req, res) => {
   const id = +req.params.id;
   const { old_password, new_password } = req.body;
 

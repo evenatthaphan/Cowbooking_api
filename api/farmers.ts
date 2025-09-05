@@ -118,12 +118,27 @@ router.post("/register", async (req, res) => {
 
 
 // login *****
-router.get("/login", async (req, res) => {
-  const username = req.query.username;
-  const password = req.query.password;
-  const sql = "SELECT * FROM Farmers WHERE farm_name = ? AND farm_password = ?";
-  conn.query(sql, [username, password], (err, result) => {
-    res.json(result);
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;  // รับจาก body
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "username and password are required" });
+  }
+
+  const sql = "SELECT * FROM Farmers WHERE farm_name = ? and farm_password = ?";
+  conn.query(sql, [username, password], async (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.length === 0) return res.status(400).json({ error: "User not found" });
+
+    const user = result[0];
+    const isMatch = await bcrypt.compare(password, user.farm_password);
+
+    if (isMatch) {
+      res.json({ message: "Login success", user });
+      console.log(user)
+    } else {
+      res.status(400).json({ error: "Invalid password" });
+    }
   });
 });
 

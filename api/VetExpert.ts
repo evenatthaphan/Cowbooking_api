@@ -110,7 +110,6 @@ router.post("/register", async (req, res) => {
   });
 });
 
-
 //login
 router.get("/login", async (req, res) => {
   const username = req.query.username;

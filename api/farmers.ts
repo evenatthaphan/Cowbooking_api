@@ -2,6 +2,7 @@ import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
+import bcrypt from "bcrypt";
 
 export const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get("/getfarmer/:id", (req, res) => {
 
 
 //post register
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   console.log("req.body:", req.body);
 
   let Farmer = req.body;
@@ -62,45 +63,56 @@ router.post("/register", (req, res) => {
   if (!Farmer.phonenumber) {
     return res.status(400).json({ error: "phonenumber is required" });
   }
+  if (!Farmer.farm_password) {
+    return res.status(400).json({ error: "farm_password is required" });
+  }
 
-  //ตรวจสอบก่อนว่าเบอร์นี้มีในระบบหรือยัง
+  // ตรวจสอบว่าเบอร์ซ้ำหรือยัง
   const checkSql = "SELECT * FROM Farmers WHERE phonenumber = ?";
-  conn.query(checkSql, [Farmer.phonenumber], (err, rows) => {
+  conn.query(checkSql, [Farmer.phonenumber], async (err, rows) => {
     if (err) {
       console.error("Error checking phonenumber:", err);
       return res.status(500).json({ error: "Error checking phonenumber" });
     }
 
     if (rows.length > 0) {
-      // ถ้ามีแล้ว
       return res.status(400).json({ error: "Phonenumber already exists" });
     }
 
-    // 2) ถ้าไม่มี -> INSERT ได้
-    const sql = `
-      INSERT INTO Farmers 
-        (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
-      VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
-    `;
+    try {
+      // 
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(Farmer.farm_password, saltRounds);
 
-    conn.query(
-      sql,
-      [
-        Farmer.farm_name,
-        Farmer.farm_password,
-        Farmer.phonenumber,
-        Farmer.farmer_email,
-        Farmer.farm_address,
-      ],
-      (err, result) => {
-        if (err) {
-          console.error("Error inserting Farmer:", err);
-          res.status(500).json({ error: "Error inserting Farmer" });
-        } else {
-          res.status(201).json({ affected_row: result.affectedRows });
+      // INSERT
+      const sql = `
+        INSERT INTO Farmers 
+          (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
+        VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
+      `;
+
+      conn.query(
+        sql,
+        [
+          Farmer.farm_name,
+          hashedPassword,
+          Farmer.phonenumber,
+          Farmer.farmer_email,
+          Farmer.farm_address,
+        ],
+        (err, result) => {
+          if (err) {
+            console.error("Error inserting Farmer:", err);
+            res.status(500).json({ error: "Error inserting Farmer" });
+          } else {
+            res.status(201).json({ message: "Farmer registered successfully", farmerId: result.insertId });
+          }
         }
-      }
-    );
+      );
+    } catch (hashErr) {
+      console.error("Error hashing password:", hashErr);
+      return res.status(500).json({ error: "Error hashing password" });
+    }
   });
 });
 

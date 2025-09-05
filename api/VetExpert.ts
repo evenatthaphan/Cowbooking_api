@@ -7,7 +7,8 @@ import bcrypt from "bcrypt";
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
 
-//get VetExperts
+
+//test get VetExperts (db connect)
 router.get("/getVetExperts", (req, res) => {
   conn.query("SELECT * FROM VetExperts", (err, result, fields) => {
     if (err) {
@@ -21,7 +22,8 @@ router.get("/getVetExperts", (req, res) => {
   });
 });
 
-//getVetExperts where id
+
+// getVetExperts where id 
 router.get("/getVetExperts/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
   const sql = "SELECT * FROM VetExperts WHERE id = ?";
@@ -38,7 +40,8 @@ router.get("/getVetExperts/:id", (req, res) => {
   });
 });
 
-//post register
+
+// post register *****
 router.post("/register", async (req, res) => {
   console.log("req.body:", req.body);
 
@@ -110,18 +113,34 @@ router.post("/register", async (req, res) => {
   });
 });
 
-//login
-router.get("/login", async (req, res) => {
-  const username = req.query.username;
-  const password = req.query.password;
-  const sql =
-    "SELECT * FROM VetExperts WHERE VetExpert_name = ? AND VetExpert_password = ?";
-  conn.query(sql, [username, password], (err, result) => {
-    res.json(result);
+
+// login *****
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;  // รับจาก body
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "username and password are required" });
+  }
+
+  const sql = "SELECT * FROM VetExpert WHERE VetExpert_name = ?";
+  conn.query(sql, [username], async (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.length === 0) return res.status(400).json({ error: "User not found" });
+
+    const user = result[0];
+    const isMatch = await bcrypt.compare(password, user.farm_password);
+
+    if (isMatch) {
+      res.json({ message: "Login success", user });
+      console.log(user)
+    } else {
+      res.status(400).json({ error: "Invalid password" });
+    }
   });
 });
 
-// insert farm
+
+// insert farm *****
 router.post("/insertfarm", (req, res) => {
   console.log("req.body:", req.body);
 

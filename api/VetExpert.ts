@@ -1,11 +1,11 @@
 import express from "express";
-import { VetExpertPostRequest } from "../model/data_post_request"
+import { VetExpertPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import { error } from "console";
+import bcrypt from "bcrypt";
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
-
 
 //get VetExperts
 router.get("/getVetExperts", (req, res) => {
@@ -21,11 +21,10 @@ router.get("/getVetExperts", (req, res) => {
   });
 });
 
-
-//getVetExperts where id 
+//getVetExperts where id
 router.get("/getVetExperts/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
-  const sql = "SELECT * FROM VetExperts WHERE id = ?"; 
+  const sql = "SELECT * FROM VetExperts WHERE id = ?";
 
   conn.query(sql, [farmerId], (err, result, fields) => {
     if (err) {
@@ -39,23 +38,27 @@ router.get("/getVetExperts/:id", (req, res) => {
   });
 });
 
-
 //post register
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   console.log("req.body:", req.body);
 
   let VetExperts = req.body;
 
   if (!VetExperts.VetExpert_name) {
-    return res.status(400).json({ error: "VetExpert_name is required", body: VetExperts });
+    return res
+      .status(400)
+      .json({ error: "VetExpert_name is required", body: VetExperts });
   }
   if (!VetExperts.phonenumber) {
     return res.status(400).json({ error: "phonenumber is required" });
   }
+  if (!VetExperts.VetExpert_password) {
+    return res.status(400).json({ error: "VetExpert_password is required" });
+  }
 
   //ตรวจสอบก่อนว่าเบอร์นี้มีในระบบหรือยัง
   const checkSql = "SELECT * FROM VetExperts WHERE phonenumber = ?";
-  conn.query(checkSql, [VetExperts.phonenumber], (err, rows) => {
+  conn.query(checkSql, [VetExperts.phonenumber], async (err, rows) => {
     if (err) {
       console.error("Error checking phonenumber:", err);
       return res.status(500).json({ error: "Error checking phonenumber" });
@@ -66,32 +69,44 @@ router.post("/register", (req, res) => {
       return res.status(400).json({ error: "Phonenumber already exists" });
     }
 
-    // 2) ถ้าไม่มี -> INSERT ได้
-    const sql = `
+    try {
+      //
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(
+        VetExperts.VetExpert_password,
+        saltRounds
+      );
+
+      // 2) ถ้าไม่มี -> INSERT ได้
+      const sql = `
       INSERT INTO VetExperts 
         (VetExpert_name, VetExpert_password, phonenumber, VetExpert_email, profile_image, VetExpert_address, VetExpert_PL)
       VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?)
     `;
 
-    conn.query(
-      sql,
-      [
-        VetExperts.VetExpert_name,
-        VetExperts.VetExpert_password,
-        VetExperts.phonenumber,
-        VetExperts.VetExpert_email,
-        VetExperts.VetExpert_address,
-        VetExperts.VetExpert_PL
-      ],
-      (err, result) => {
-        if (err) {
-          console.error("Error inserting VetExpert:", err);
-          res.status(500).json({ error: "Error inserting VetExpert" });
-        } else {
-          res.status(201).json({ affected_row: result.affectedRows });
+      conn.query(
+        sql,
+        [
+          VetExperts.VetExpert_name,
+          hashedPassword,
+          VetExperts.phonenumber,
+          VetExperts.VetExpert_email,
+          VetExperts.VetExpert_address,
+          VetExperts.VetExpert_PL,
+        ],
+        (err, result) => {
+          if (err) {
+            console.error("Error inserting VetExpert:", err);
+            res.status(500).json({ error: "Error inserting VetExpert" });
+          } else {
+            res.status(201).json({ affected_row: result.affectedRows });
+          }
         }
-      }
-    );
+      );
+    } catch (hashErr) {
+      console.error("Error hashing password:", hashErr);
+      return res.status(500).json({ error: "Error hashing password" });
+    }
   });
 });
 
@@ -100,12 +115,12 @@ router.post("/register", (req, res) => {
 router.get("/login", async (req, res) => {
   const username = req.query.username;
   const password = req.query.password;
-  const sql = "SELECT * FROM VetExperts WHERE VetExpert_name = ? AND VetExpert_password = ?";
+  const sql =
+    "SELECT * FROM VetExperts WHERE VetExpert_name = ? AND VetExpert_password = ?";
   conn.query(sql, [username, password], (err, result) => {
     res.json(result);
   });
 });
-
 
 // insert farm
 router.post("/insertfarm", (req, res) => {
@@ -139,7 +154,13 @@ router.post("/insertfarm", (req, res) => {
 
     conn.query(
       sql,
-      [Farms.name, Farms.province, Farms.district, Farms.locality, Farms.address],
+      [
+        Farms.name,
+        Farms.province,
+        Farms.district,
+        Farms.locality,
+        Farms.address,
+      ],
       (err, result) => {
         if (err) {
           console.error("Error inserting farm:", err);
@@ -153,7 +174,3 @@ router.post("/insertfarm", (req, res) => {
     );
   });
 });
-
-
-
-

@@ -18,7 +18,7 @@ export const router = express.Router();
 //   res.send("Get in trip.ts id: " + req.params.id);
 // });
 
-//get farmer
+// get farmer test db connect
 router.get("/getfarmer", (req, res) => {
   conn.query("SELECT * FROM Farmers", (err, result, fields) => {
     if (err) {
@@ -33,7 +33,7 @@ router.get("/getfarmer", (req, res) => {
 });
 
 
-//get where id 
+// get where id 
 router.get("/getfarmer/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
   const sql = "SELECT * FROM Farmers WHERE id = ?"; 
@@ -51,7 +51,7 @@ router.get("/getfarmer/:id", (req, res) => {
 });
 
 
-//post register
+// farmer register *****
 router.post("/register", async (req, res) => {
   console.log("req.body:", req.body);
 
@@ -80,11 +80,11 @@ router.post("/register", async (req, res) => {
     }
 
     try {
-      // 
+      // แฮช
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(Farmer.farm_password, saltRounds);
 
-      // INSERT
+      // insert
       const sql = `
         INSERT INTO Farmers 
           (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
@@ -116,7 +116,8 @@ router.post("/register", async (req, res) => {
   });
 });
 
-//login
+
+// login *****
 router.get("/login", async (req, res) => {
   const username = req.query.username;
   const password = req.query.password;
@@ -128,13 +129,13 @@ router.get("/login", async (req, res) => {
 
 
 
-//edit profile
+// edit profile *****
 router.put("/edit:id", async (req, res) => {
-  //Receive data from request
+
   const id = +req.params.id;
   let farmer: FarmerPostRequest = req.body;
 
-  //Query original data by id
+
   let farmerOriginal: FarmerPostRequest | undefined;
   let sql = mysql.format("select * from Farmers where id =? ", [id]);
   let result = await queryAsync(sql);
@@ -143,10 +144,10 @@ router.put("/edit:id", async (req, res) => {
   const rawData = jsonObj;
   farmerOriginal = rawData[0];
 
-  //Merge received object to original
+
   const updataFarmer = { ...farmerOriginal, ...farmer };
 
-  //update data in tabel
+  //update 
   sql =
     "update  `Farmers` set `farm_name`=?,`phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? where `id`=?";
   sql = mysql.format(sql, [
@@ -164,17 +165,17 @@ router.put("/edit:id", async (req, res) => {
 });
 
 
-// change password
+// change password *****
 router.put("/changepass/:id", async (req, res) => {
   const id = +req.params.id;
   const { old_password, new_password } = req.body;
 
-  // ตรวจสอบว่ามีการส่งรหัสผ่านมาครบ
   if (!old_password || !new_password) {
     return res.status(400).json({ error: "old_password and new_password are required" });
   }
 
   try {
+    // หา farmer ตาม id
     let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
     let result = await queryAsync(sql) as FarmerPostRequest[];
 
@@ -184,19 +185,23 @@ router.put("/changepass/:id", async (req, res) => {
 
     const farmerOriginal = result[0];
 
-    // เช็ครหัสผ่านเดิม
-    if (farmerOriginal.farm_password !== old_password) {
+    // เทียบรหัสผ่านเดิม
+    const isMatch = await bcrypt.compare(old_password, farmerOriginal.farm_password);
+    if (!isMatch) {
       return res.status(400).json({ error: "Old password is incorrect" });
     }
 
-    // อัปเดตรหัสผ่านใหม่
+    // แฮช
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(new_password, saltRounds);
+
+    // อัปเดตลง DB
     const updateSql = "UPDATE Farmers SET farm_password = ? WHERE id = ?";
-    conn.query(updateSql, [new_password, id], (err, updateResult) => {
+    conn.query(updateSql, [hashedPassword, id], (err) => {
       if (err) {
         console.error("Error updating password:", err);
         return res.status(500).json({ error: "Error updating password" });
       }
-
       res.json({ message: "Password updated successfully" });
     });
 
@@ -205,6 +210,7 @@ router.put("/changepass/:id", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 

@@ -116,7 +116,9 @@ router.post("/register", async (req, res) => {
 
 // login *****
 router.post("/login", async (req, res) => {
+  
   const { username, password } = req.body;  // รับจาก body
+  console.log("req.body:", req.body);
 
   if (!username || !password) {
     return res.status(400).json({ error: "username and password are required" });

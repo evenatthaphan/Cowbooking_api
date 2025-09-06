@@ -26,6 +26,8 @@ router.post("/login", async (req, res) => {
       const isMatch = await bcrypt.compare(password, user.farm_password);
       if (isMatch) {
         return res.json({ role: "farmer", message: "Login success", user });
+      } else {
+        return res.status(400).json({ error: "Not found username or password" });
       }
     }
 
@@ -39,6 +41,8 @@ router.post("/login", async (req, res) => {
         const isMatch2 = await bcrypt.compare(password, vet.VetExpert_password);
         if (isMatch2) {
           return res.json({ role: "vet", message: "Login success", user: vet });
+        } else {
+            return res.status(400).json({ error: "Not found username or password" });
         }
       }
 

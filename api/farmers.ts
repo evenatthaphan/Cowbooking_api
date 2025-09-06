@@ -117,37 +117,6 @@ router.post("/register", async (req, res) => {
 });
 
 
-// login *****
-// router.post("/login", async (req, res) => {
-//   const { loginId, password } = req.body;  // loginId = username หรือ phone หรือ email
-
-//   if (!loginId || !password) {
-//     return res.status(400).json({ error: "loginId and password are required" });
-//   }
-
-//   // ค้นหา user จาก username หรือ phone หรือ email
-//   const sql = `
-//     SELECT * FROM Farmers 
-//     WHERE farm_name = ? OR phonenumber = ? OR farmer_email = ?
-//   `;
-
-//   conn.query(sql, [loginId, loginId, loginId], async (err, result) => {
-//     if (err) return res.status(500).json({ error: err.message });
-//     if (result.length === 0) return res.status(400).json({ error: "User not found" });
-
-//     const user = result[0];
-
-//     const isMatch = await bcrypt.compare(password, user.farm_password);
-
-//     if (isMatch) {
-//       res.json({ message: "Login success", user });
-//       console.log(user);
-//     } else {
-//       res.status(400).json({ error: "Invalid password" });
-//     }
-//   });
-// });
-
 
 
 // edit profile *****

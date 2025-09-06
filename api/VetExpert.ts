@@ -110,35 +110,7 @@ router.post("/register", async (req, res) => {
   });
 });
 
-// login *****
-// router.post("/login", async (req, res) => {
-//   const { loginId, password } = req.body; // รับจาก body
-//   console.log("req.body:", req.body);
 
-//   if (!loginId || !password) {
-//     return res.status(400).json({ error: "loginId and password are required" });
-//   }
-
-//   const sql =
-//     "SELECT * FROM VetExperts WHERE VetExpert_name = ? and phonenumber = ? and VetExpert_password = ?";
-
-//   conn.query(sql, [loginId, loginId, loginId], async (err, result) => {
-//     if (err) return res.status(500).json({ error: err.message });
-//     if (result.length === 0)
-//       return res.status(400).json({ error: "User not found" });
-
-//     const user = result[0];
-//     const isMatch = await bcrypt.compare(password, user.VetExpert_password);
-
-//     if (isMatch) {
-//       res.json({ message: "Login success", user });
-//       console.log(user);
-//     } else {
-//       res.status(400).json({ error: "Invalid password" });
-//       console.log(err);
-//     }
-//   });
-// });
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {

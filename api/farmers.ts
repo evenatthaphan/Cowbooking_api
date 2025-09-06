@@ -67,7 +67,7 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ error: "farm_password is required" });
   }
 
-  // ตรวจสอบว่าเบอร์ซ้ำหรือยัง
+  // เช็คเบอร์ซ้ำ
   const checkSql = "SELECT * FROM Farmers WHERE phonenumber = ?";
   conn.query(checkSql, [Farmer.phonenumber], async (err, rows) => {
     if (err) {
@@ -80,7 +80,7 @@ router.post("/register", async (req, res) => {
     }
 
     try {
-      // แฮช
+      // hash
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(Farmer.farm_password, saltRounds);
 
@@ -118,29 +118,35 @@ router.post("/register", async (req, res) => {
 
 
 // login *****
-router.post("/login", async (req, res) => {
-  const { username, password } = req.body;  // รับจาก body
+// router.post("/login", async (req, res) => {
+//   const { loginId, password } = req.body;  // loginId = username หรือ phone หรือ email
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "username and password are required" });
-  }
+//   if (!loginId || !password) {
+//     return res.status(400).json({ error: "loginId and password are required" });
+//   }
 
-  const sql = "SELECT * FROM Farmers WHERE farm_name = ?";
-  conn.query(sql, [username], async (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.length === 0) return res.status(400).json({ error: "User not found" });
+//   // ค้นหา user จาก username หรือ phone หรือ email
+//   const sql = `
+//     SELECT * FROM Farmers 
+//     WHERE farm_name = ? OR phonenumber = ? OR farmer_email = ?
+//   `;
 
-    const user = result[0];
-    const isMatch = await bcrypt.compare(password, user.farm_password);
+//   conn.query(sql, [loginId, loginId, loginId], async (err, result) => {
+//     if (err) return res.status(500).json({ error: err.message });
+//     if (result.length === 0) return res.status(400).json({ error: "User not found" });
 
-    if (isMatch) {
-      res.json({ message: "Login success", user });
-      console.log(user)
-    } else {
-      res.status(400).json({ error: "Invalid password" });
-    }
-  });
-});
+//     const user = result[0];
+
+//     const isMatch = await bcrypt.compare(password, user.farm_password);
+
+//     if (isMatch) {
+//       res.json({ message: "Login success", user });
+//       console.log(user);
+//     } else {
+//       res.status(400).json({ error: "Invalid password" });
+//     }
+//   });
+// });
 
 
 
@@ -202,7 +208,7 @@ router.put("/changepass/:id", async (req, res) => {
     console.log("old_password from request:", old_password);
     console.log("stored hash from DB:", farmerOriginal.farm_password);
 
-    // เทียบรหัสผ่านเดิม
+    // compare oldpass
     const isMatch = await bcrypt.compare(old_password, farmerOriginal.farm_password);
     console.log("isMatch result:", isMatch);
 
@@ -210,11 +216,11 @@ router.put("/changepass/:id", async (req, res) => {
       return res.status(400).json({ error: "Old password is incorrect" });
     }
 
-    // แฮช
+    // hash
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(new_password, saltRounds);
 
-    // อัปเดตลง DB
+    // update
     const updateSql = "UPDATE Farmers SET farm_password = ? WHERE id = ?";
     conn.query(updateSql, [hashedPassword, id], (err) => {
       if (err) {
@@ -231,6 +237,14 @@ router.put("/changepass/:id", async (req, res) => {
 });
 
 
+// forget password
+// router.post("/forget-pass", async (req, res) => {
 
+//   const { phone, otp, newPassword } = req.body;
+//   if (!phone || !otp || !newPassword) {
+//     return res.status(400).json({ error: "phone ,otp, newPassword are required" });
+//   }
+
+// })
 
 

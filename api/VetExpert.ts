@@ -7,7 +7,6 @@ import bcrypt from "bcrypt";
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
 
-
 //test get VetExperts (db connect)
 router.get("/getVetExperts", (req, res) => {
   conn.query("SELECT * FROM VetExperts", (err, result, fields) => {
@@ -22,8 +21,7 @@ router.get("/getVetExperts", (req, res) => {
   });
 });
 
-
-// getVetExperts where id 
+// getVetExperts where id
 router.get("/getVetExperts/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
   const sql = "SELECT * FROM VetExperts WHERE id = ?";
@@ -39,7 +37,6 @@ router.get("/getVetExperts/:id", (req, res) => {
     res.json(result[0]); // ส่งแค่ตัวเดียว
   });
 });
-
 
 // post register *****
 router.post("/register", async (req, res) => {
@@ -113,35 +110,35 @@ router.post("/register", async (req, res) => {
   });
 });
 
-
 // login *****
-router.post("/login", async (req, res) => {
-  
-  const { username, password } = req.body;  // รับจาก body
-  console.log("req.body:", req.body);
+// router.post("/login", async (req, res) => {
+//   const { loginId, password } = req.body; // รับจาก body
+//   console.log("req.body:", req.body);
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "username and password are required" });
-  }
+//   if (!loginId || !password) {
+//     return res.status(400).json({ error: "loginId and password are required" });
+//   }
 
-  const sql = "SELECT * FROM VetExperts WHERE VetExpert_name = ?";
-  conn.query(sql, [username], async (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.length === 0) return res.status(400).json({ error: "User not found" });
+//   const sql =
+//     "SELECT * FROM VetExperts WHERE VetExpert_name = ? and phonenumber = ? and VetExpert_password = ?";
 
-    const user = result[0];
-    const isMatch = await bcrypt.compare(password, user.VetExpert_password);
+//   conn.query(sql, [loginId, loginId, loginId], async (err, result) => {
+//     if (err) return res.status(500).json({ error: err.message });
+//     if (result.length === 0)
+//       return res.status(400).json({ error: "User not found" });
 
-    if (isMatch) {
-      res.json({ message: "Login success", user });
-      console.log(user)
-    } else {
-      res.status(400).json({ error: "Invalid password" });
-      console.log(err)
-    }
-  });
-});
+//     const user = result[0];
+//     const isMatch = await bcrypt.compare(password, user.VetExpert_password);
 
+//     if (isMatch) {
+//       res.json({ message: "Login success", user });
+//       console.log(user);
+//     } else {
+//       res.status(400).json({ error: "Invalid password" });
+//       console.log(err);
+//     }
+//   });
+// });
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {

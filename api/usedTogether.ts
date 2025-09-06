@@ -27,7 +27,7 @@ router.post("/login", async (req, res) => {
       if (isMatch) {
         return res.json({ role: "farmer", message: "Login success", user });
       } else {
-        return res.status(400).json({ error: "Not found username or password" });
+        return res.status(400).json({ error: "Not found this Farmer" });
       }
     }
 
@@ -42,12 +42,12 @@ router.post("/login", async (req, res) => {
         if (isMatch2) {
           return res.json({ role: "vet", message: "Login success", user: vet });
         } else {
-            return res.status(400).json({ error: "Not found username or password" });
+            return res.status(400).json({ error: "Not found this VetExpert" });
         }
       }
 
       // ถ้าไม่เจอในทั้งสอง table
-      return res.status(400).json({ error: "Invalid username or password" });
+      return res.status(400).json({ error: "Invalid Users" });
     });
   });
 });

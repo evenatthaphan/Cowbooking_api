@@ -137,6 +137,7 @@ router.post("/login", async (req, res) => {
       console.log(user)
     } else {
       res.status(400).json({ error: "Invalid password" });
+      console.log(err)
     }
   });
 });

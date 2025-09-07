@@ -78,12 +78,17 @@ router.post("/search", async (req, res) => {
     WHERE 1=1
   `;
   let params = [];
-
-  if (keyword) {
+  
+  // search by keyword
+  if (keyword && keyword.trim() !== "") {
     sql += " AND (b.Bullname LIKE ? OR f.name LIKE ? OR b.Bullbreed LIKE ?)";
     params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+    console.log(" search keyword : ", keyword);
+  } else {
+    console.log(" no search only used filter ")
   }
 
+  // filter
   if (province) {
     sql += " AND f.province = ?";
     params.push(province);

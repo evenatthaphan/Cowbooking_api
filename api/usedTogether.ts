@@ -51,3 +51,64 @@ router.post("/login", async (req, res) => {
     });
   });
 });
+
+
+// Search *****
+router.post("/search", async (req, res) => {
+  const { keyword, province, district, locality } = req.body;
+
+  let sql = `
+    SELECT 
+      b.id AS bull_id,
+      b.Bullname,
+      b.Bullbreed,
+      b.Bullage,
+      b.characteristics,
+      b.price_per_dose,
+      b.semen_stock,
+      b.contest_records,
+      f.id AS farm_id,
+      f.name AS farm_name,
+      f.province,
+      f.district,
+      f.locality,
+      f.address
+    FROM BullSires b
+    JOIN Farms f ON b.farm_id = f.id
+    WHERE 1=1
+  `;
+  let params = [];
+
+  if (keyword) {
+    sql += " AND (b.Bullname LIKE ? OR f.name LIKE ? OR b.Bullbreed LIKE ?)";
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+  }
+
+  if (province) {
+    sql += " AND f.province = ?";
+    params.push(province);
+  }
+
+  if (district) {
+    sql += " AND f.district = ?";
+    params.push(district);
+  }
+
+  if (locality) {
+    sql += " AND f.locality = ?";
+    params.push(locality);
+  }
+
+  try {
+    conn.query(sql, params, (err, results) => {
+      if (err) {
+        console.error("Search error:", err);
+        return res.status(500).json({ error: "Database query failed" });
+      }
+      res.json(results);
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+

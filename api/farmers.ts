@@ -32,11 +32,10 @@ router.get("/getfarmer", (req, res) => {
   });
 });
 
-
-// get where id 
+// get where id
 router.get("/getfarmer/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
-  const sql = "SELECT * FROM Farmers WHERE id = ?"; 
+  const sql = "SELECT * FROM Farmers WHERE id = ?";
 
   conn.query(sql, [farmerId], (err, result, fields) => {
     if (err) {
@@ -50,7 +49,6 @@ router.get("/getfarmer/:id", (req, res) => {
   });
 });
 
-
 // farmer register *****
 router.post("/register", async (req, res) => {
   console.log("req.body:", req.body);
@@ -58,7 +56,9 @@ router.post("/register", async (req, res) => {
   let Farmer = req.body;
 
   if (!Farmer.farm_name) {
-    return res.status(400).json({ error: "farm_name is required", body: Farmer });
+    return res
+      .status(400)
+      .json({ error: "farm_name is required", body: Farmer });
   }
   if (!Farmer.phonenumber) {
     return res.status(400).json({ error: "phonenumber is required" });
@@ -68,63 +68,77 @@ router.post("/register", async (req, res) => {
   }
 
   // เช็คเบอร์ซ้ำ
-  const checkSql = "SELECT * FROM Farmers WHERE phonenumber = ?";
-  conn.query(checkSql, [Farmer.phonenumber], async (err, rows) => {
-    if (err) {
-      console.error("Error checking phonenumber:", err);
-      return res.status(500).json({ error: "Error checking phonenumber" });
-    }
+  const checkSql =
+    "SELECT * FROM Farmers WHERE phonenumber = ? OR farmer_email = ?";
+  conn.query(
+    checkSql,
+    [Farmer.phonenumber, Farmer.farmer_email],
+    async (err, rows) => {
+      if (err) {
+        console.error("Error checking phonenumber and email:", err);
+        return res
+          .status(500)
+          .json({ error: "Error checking phonenumber and email" });
+      }
 
-    if (rows.length > 0) {
-      return res.status(400).json({ error: "Phonenumber already exists" });
-    }
+      if (rows.length > 0) {
+        const existing = rows[0];
+        if (existing.phonenumber === Farmer.phonenumber) {
+          return res.status(400).json({ error: "Phonenumber already exists" });
+        }
+        if (existing.VetExpert_email === Farmer.farmer_email) {
+          return res.status(400).json({ error: "Email already exists" });
+        }
+      }
 
-    try {
-      // hash
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(Farmer.farm_password, saltRounds);
+      try {
+        // hash
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(
+          Farmer.farm_password,
+          saltRounds
+        );
 
-      // insert
-      const sql = `
+        // insert
+        const sql = `
         INSERT INTO Farmers 
           (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
         VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
       `;
 
-      conn.query(
-        sql,
-        [
-          Farmer.farm_name,
-          hashedPassword,
-          Farmer.phonenumber,
-          Farmer.farmer_email,
-          Farmer.farm_address,
-        ],
-        (err, result) => {
-          if (err) {
-            console.error("Error inserting Farmer:", err);
-            res.status(500).json({ error: "Error inserting Farmer" });
-          } else {
-            res.status(201).json({ message: "Farmer registered successfully", farmerId: result.insertId });
+        conn.query(
+          sql,
+          [
+            Farmer.farm_name,
+            hashedPassword,
+            Farmer.phonenumber,
+            Farmer.farmer_email,
+            Farmer.farm_address,
+          ],
+          (err, result) => {
+            if (err) {
+              console.error("Error inserting Farmer:", err);
+              res.status(500).json({ error: "Error inserting Farmer" });
+            } else {
+              res.status(201).json({
+                message: "Farmer registered successfully",
+                farmerId: result.insertId,
+              });
+            }
           }
-        }
-      );
-    } catch (hashErr) {
-      console.error("Error hashing password:", hashErr);
-      return res.status(500).json({ error: "Error hashing password" });
+        );
+      } catch (hashErr) {
+        console.error("Error hashing password:", hashErr);
+        return res.status(500).json({ error: "Error hashing password" });
+      }
     }
-  });
+  );
 });
-
-
-
 
 // edit profile *****
 router.put("/edit/:id", async (req, res) => {
-
   const id = +req.params.id;
   let farmer: FarmerPostRequest = req.body;
-
 
   let farmerOriginal: FarmerPostRequest | undefined;
   let sql = mysql.format("select * from Farmers where id =? ", [id]);
@@ -134,10 +148,9 @@ router.put("/edit/:id", async (req, res) => {
   const rawData = jsonObj;
   farmerOriginal = rawData[0];
 
-
   const updataFarmer = { ...farmerOriginal, ...farmer };
 
-  //update 
+  //update
   sql =
     "update  `Farmers` set `farm_name`=?,`phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? where `id`=?";
   sql = mysql.format(sql, [
@@ -154,20 +167,21 @@ router.put("/edit/:id", async (req, res) => {
   });
 });
 
-
 // change password *****
 router.put("/changepass/:id", async (req, res) => {
   const id = +req.params.id;
   const { old_password, new_password } = req.body;
 
   if (!old_password || !new_password) {
-    return res.status(400).json({ error: "old_password and new_password are required" });
+    return res
+      .status(400)
+      .json({ error: "old_password and new_password are required" });
   }
 
   try {
     // หา farmer ตาม id
     let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
-    let result = await queryAsync(sql) as FarmerPostRequest[];
+    let result = (await queryAsync(sql)) as FarmerPostRequest[];
 
     if (!result || result.length === 0) {
       return res.status(404).json({ error: "Farmer not found" });
@@ -178,7 +192,10 @@ router.put("/changepass/:id", async (req, res) => {
     console.log("stored hash from DB:", farmerOriginal.farm_password);
 
     // compare oldpass
-    const isMatch = await bcrypt.compare(old_password, farmerOriginal.farm_password);
+    const isMatch = await bcrypt.compare(
+      old_password,
+      farmerOriginal.farm_password
+    );
     console.log("isMatch result:", isMatch);
 
     if (!isMatch) {
@@ -198,13 +215,11 @@ router.put("/changepass/:id", async (req, res) => {
       }
       res.json({ message: "Password updated successfully" });
     });
-
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 // forget password
 // router.post("/forget-pass", async (req, res) => {
@@ -215,5 +230,3 @@ router.put("/changepass/:id", async (req, res) => {
 //   }
 
 // })
-
-

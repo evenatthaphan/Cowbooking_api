@@ -55,6 +55,9 @@ router.post("/register", async (req, res) => {
   if (!VetExperts.VetExpert_password) {
     return res.status(400).json({ error: "VetExpert_password is required" });
   }
+  if (!VetExperts.province || VetExperts.district || VetExperts.locality) {
+    return res.status(400).json({ error: "province, district and locality are required" });
+  }
 
   //ตรวจสอบก่อนว่าเบอร์นี้มีในระบบหรือยัง
   const checkSql =
@@ -92,8 +95,8 @@ router.post("/register", async (req, res) => {
         // 2) ถ้าไม่มี -> INSERT ได้
         const sql = `
       INSERT INTO VetExperts 
-        (VetExpert_name, VetExpert_password, phonenumber, VetExpert_email, profile_image, VetExpert_address, VetExpert_PL)
-      VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?)
+        (VetExpert_name, VetExpert_password, phonenumber, VetExpert_email, profile_image, province, district, locality, VetExpert_address, VetExpert_PL)
+      VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',?, ?, ?, ?, ?)
     `;
 
         conn.query(
@@ -103,6 +106,9 @@ router.post("/register", async (req, res) => {
             hashedPassword,
             VetExperts.phonenumber,
             VetExperts.VetExpert_email,
+            VetExperts.province,
+            VetExperts.district,
+            VetExperts.locality,
             VetExperts.VetExpert_address,
             VetExperts.VetExpert_PL,
           ],

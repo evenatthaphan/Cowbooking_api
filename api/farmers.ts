@@ -107,7 +107,7 @@ router.post("/register", async (req, res) => {
         const sql = `
         INSERT INTO Farmers 
           (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address, province, district, locality)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
+        VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?)
       `;
 
         conn.query(

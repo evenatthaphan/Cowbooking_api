@@ -66,6 +66,10 @@ router.post("/register", async (req, res) => {
   if (!Farmer.farm_password) {
     return res.status(400).json({ error: "farm_password is required" });
   }
+  if (!Farmer.province || !Farmer.district || !Farmer.locality) {
+    return res.status(400).json({ error: "province, district and locality are required" });
+  }
+
 
   // เช็คเบอร์ซ้ำ
   const checkSql =
@@ -102,8 +106,8 @@ router.post("/register", async (req, res) => {
         // insert
         const sql = `
         INSERT INTO Farmers 
-          (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address)
-        VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
+          (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address, province, district, locality)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?)
       `;
 
         conn.query(
@@ -114,6 +118,9 @@ router.post("/register", async (req, res) => {
             Farmer.phonenumber,
             Farmer.farmer_email,
             Farmer.farm_address,
+            Farmer.province,
+            Farmer.district,
+            Farmer.locality
           ],
           (err, result) => {
             if (err) {

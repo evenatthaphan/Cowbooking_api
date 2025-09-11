@@ -6,6 +6,9 @@ export interface FarmerPostRequest {
     farmer_email: string;
     profile_image: string;
     farm_address: string;
+    province: string;
+    district: string;
+    locality: string;
 }
 
 
@@ -16,6 +19,9 @@ export interface VetExpertPostRequest {
     phonenumber: number;
     VetExpert_email: string;
     profile_image: string;
+    province: string;
+    district: string;
+    locality: string;
     VetExpert_address: string;
     VetExpert_PL: string;
 }

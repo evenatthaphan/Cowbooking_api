@@ -1,5 +1,7 @@
 import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
+import { BullRow} from "../model/data_post_request";
+import { Bull} from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
@@ -117,3 +119,87 @@ router.post("/search", async (req, res) => {
   }
 });
 
+
+
+// get bull data *****
+router.get("/bullData", async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        b.id AS bull_id,
+        b.Bullname,
+        b.Bullbreed,
+        b.Bullage,
+        b.characteristics,
+        b.farm_id,
+        f.name AS farm_name,
+        f.province,
+        f.district,
+        f.locality,
+        f.address,
+        b.price_per_dose,
+        b.semen_stock,
+        b.contest_records,
+        b.added_by,
+        i.id AS image_id,
+        i.image1,
+        i.image2,
+        i.image3,
+        i.image4,
+        i.image5
+      FROM BullSires b
+      JOIN Farms f ON b.farm_id = f.id
+      LEFT JOIN BullImages i ON b.id = i.bull_id
+    `;
+
+    conn.query(sql, (err, result) => {
+      if (err) {
+        console.error("Error fetching bulls:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      const bullsMap: { [key: number]: Bull} = {};
+
+      (result as BullRow[]).forEach((row: BullRow) => {
+        if (!bullsMap[row.bull_id]) {
+          bullsMap[row.bull_id] = {
+            bull_id: row.bull_id,
+            Bullname: row.Bullname,
+            Bullbreed: row.Bullbreed,
+            Bullage: row.Bullage,
+            characteristics: row.characteristics,
+            price_per_dose: row.price_per_dose,
+            semen_stock: row.semen_stock,
+            contest_records: row.contest_records,
+            added_by: row.added_by,
+            farm: {
+              id: row.farm_id,
+              name: row.farm_name,
+              province: row.province,
+              district: row.district,
+              locality: row.locality,
+              address: row.address,
+            },
+            images: [],
+          };
+        }
+
+        if (row.image_id) {
+          bullsMap[row.bull_id].images.push({
+            id: row.image_id,
+            image1: row.image1,
+            image2: row.image2,
+            image3: row.image3,
+            image4: row.image4,
+            image5: row.image5,
+          });
+        }
+      });
+
+      res.json(Object.values(bullsMap));
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});

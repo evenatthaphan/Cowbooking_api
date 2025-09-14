@@ -55,7 +55,7 @@ router.post("/register", async (req, res) => {
   if (!VetExperts.VetExpert_password) {
     return res.status(400).json({ error: "VetExpert_password is required" });
   }
-  if (!VetExperts.province || VetExperts.district || VetExperts.locality) {
+  if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
     return res.status(400).json({ error: "province, district and locality are required" });
   }
 

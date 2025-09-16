@@ -278,8 +278,8 @@ router.get("/locations/districts/:province", (req, res) => {
 });
 
 // Get distinct localities filtered by province and district
-router.get("/locations/localities", (req, res) => {
-  const { province, district } = req.query as { province?: string; district?: string };
+router.get("/locations/localities/:province/:district", (req, res) => {
+  const { province, district } = req.params;
 
   if (!province || !district) {
     return res.status(400).json({ error: "province and district are required" });

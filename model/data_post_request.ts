@@ -113,6 +113,50 @@ export interface Bull {
   }[];
 }
 
+// Location Management Models
+export interface Province {
+  id: number;
+  name: string;
+  created_at?: string;
+}
+
+export interface District {
+  id: number;
+  name: string;
+  province_id: number;
+  created_at?: string;
+}
+
+export interface Locality {
+  id: number;
+  name: string;
+  district_id: number;
+  province_id: number;
+  created_at?: string;
+}
+
+export interface ProvincePostRequest {
+  name: string;
+}
+
+export interface DistrictPostRequest {
+  name: string;
+  province_id: number;
+}
+
+export interface LocalityPostRequest {
+  name: string;
+  district_id: number;
+  province_id: number;
+}
+
+// Location Response Models
+export interface LocationResponse {
+  provinces: Province[];
+  districts: District[];
+  localities: Locality[];
+}
+
 
 
 

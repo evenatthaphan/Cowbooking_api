@@ -142,6 +142,8 @@ router.post("/register", async (req, res) => {
   );
 });
 
+
+
 // edit profile *****
 router.put("/edit/:id", async (req, res) => {
   const id = +req.params.id;
@@ -237,3 +239,63 @@ router.put("/changepass/:id", async (req, res) => {
 //   }
 
 // })
+
+// ================= Location endpoints (from Farmers data) =================
+
+// Get distinct provinces from Farmers
+router.get("/locations/provinces", (req, res) => {
+  const sql = `
+    SELECT DISTINCT province 
+    FROM Farmers 
+    WHERE province IS NOT NULL AND province <> ''
+    ORDER BY province ASC
+  `;
+  conn.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error fetching provinces:", err);
+      return res.status(500).json({ error: "Database query failed" });
+    }
+    res.json(result.map((row: any) => row.province));
+  });
+});
+
+// Get distinct districts filtered by province
+router.get("/locations/districts/:province", (req, res) => {
+  const { province } = req.params;
+  const sql = `
+    SELECT DISTINCT district 
+    FROM Farmers 
+    WHERE district IS NOT NULL AND district <> '' AND province = ?
+    ORDER BY district ASC
+  `;
+  conn.query(sql, [province], (err, result) => {
+    if (err) {
+      console.error("Error fetching districts:", err);
+      return res.status(500).json({ error: "Database query failed" });
+    }
+    res.json(result.map((row: any) => row.district));
+  });
+});
+
+// Get distinct localities filtered by province and district
+router.get("/locations/localities", (req, res) => {
+  const { province, district } = req.query as { province?: string; district?: string };
+
+  if (!province || !district) {
+    return res.status(400).json({ error: "province and district are required" });
+  }
+
+  const sql = `
+    SELECT DISTINCT locality 
+    FROM Farmers 
+    WHERE locality IS NOT NULL AND locality <> '' AND province = ? AND district = ?
+    ORDER BY locality ASC
+  `;
+  conn.query(sql, [province, district], (err, result) => {
+    if (err) {
+      console.error("Error fetching localities:", err);
+      return res.status(500).json({ error: "Database query failed" });
+    }
+    res.json(result.map((row: any) => row.locality));
+  });
+});

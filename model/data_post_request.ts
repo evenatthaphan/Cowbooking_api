@@ -158,6 +158,62 @@ export interface LocationResponse {
 }
 
 
+export interface VetSchedulesPostRequest {
+  id?: number;               
+  vet_expert_id: number;     
+  available_date: string;    
+  available_time: string;    
+  is_booked?: boolean;      
+  created_at?: string;       
+}
+
+
+
+export interface QueueBookingRequest {
+    id?: number;
+    farmer_id: number;           
+    vet_expert_id: number;       
+    booking_date: string;        
+    preferred_date: string;      
+    preferred_time?: string;            
+    detailBull: string;            
+    status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+    vet_notes?: string;          
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface QueueBookingResponse {
+    id: number;
+    farmer: {
+        id: number;
+        farm_name: string;
+        phonenumber: number;
+        farmer_email: string;
+        farm_address: string;
+        province: string;
+        district: string;
+        locality: string;
+    };
+    vet_expert: {
+        id: number;
+        VetExpert_name: string;
+        phonenumber: number;
+        VetExpert_email: string;
+        VetExpert_address: string;
+        province: string;
+        district: string;
+        locality: string;
+    };
+    booking_date: string;
+    preferred_date: string;
+    service_type: string;
+    animal_type: string;
+    symptoms: string;
+    urgency_level: string;
+    status: string;
+    vet_notes?: string;
+}
 
 
 

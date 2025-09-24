@@ -3,6 +3,7 @@ import { VetExpertPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import { error } from "console";
 import bcrypt from "bcrypt";
+import { VetSchedulesPostRequest } from "../model/data_post_request";
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
@@ -181,3 +182,33 @@ router.post("/insertfarm", (req, res) => {
     );
   });
 });
+
+
+// add schedule
+// router.post("/vet/schedule", async (req, res) => {
+//   try {
+//     const { vet_expert_id, available_date, available_time } = req.body;
+
+//     if (!vet_expert_id || !available_date || !available_time) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+
+//     const sql = `
+//       INSERT INTO vet_schedules (vet_expert_id, available_date, available_time)
+//       VALUES (?, ?, ?)
+//     `;
+//     const [result]: any = await queryAsync(sql, [
+//       vet_expert_id,
+//       available_date,
+//       available_time,
+//     ]);
+
+//     return res.status(201).json({
+//       message: "Schedule added",
+//       schedule_id: result.insertId,
+//     });
+//   } catch (err) {
+//     console.error("Error adding schedule:", err);
+//     return res.status(500).json({ error: "Internal server error" });
+//   }
+// });

@@ -216,7 +216,19 @@ export interface QueueBookingResponse {
 }
 
 
-
+export interface Adminsrequest {
+  id : number;				
+  admin_username : string;
+  email : string;
+  admin_password : string;	
+  phone : string;
+  address : string;
+  profile_image	: string;		
+  user_type : string;
+  must_change_password : boolean;					
+  created_at : string;
+  updated_at : string;
+}
 
 
 

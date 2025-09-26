@@ -10,7 +10,7 @@ import bcrypt from "bcrypt";
 export const router = express.Router();
 
 
-// login for 2 type ****
+// login for 3 type ****
 router.post("/login", async (req, res) => {
   const { loginId, password } = req.body;
 
@@ -19,7 +19,8 @@ router.post("/login", async (req, res) => {
   }
 
   // check Farmers
-  const farmerSql = "SELECT * FROM Farmers WHERE farm_name = ? OR phonenumber = ? OR farmer_email = ?";
+  const farmerSql =
+    "SELECT * FROM Farmers WHERE farm_name = ? OR phonenumber = ? OR farmer_email = ?";
   conn.query(farmerSql, [loginId, loginId, loginId], async (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
 
@@ -34,7 +35,8 @@ router.post("/login", async (req, res) => {
     }
 
     // check VetExperts
-    const vetSql = "SELECT * FROM VetExperts WHERE VetExpert_name = ? OR phonenumber = ? OR VetExpert_email = ?";
+    const vetSql =
+      "SELECT * FROM VetExperts WHERE VetExpert_name = ? OR phonenumber = ? OR VetExpert_email = ?";
     conn.query(vetSql, [loginId, loginId, loginId], async (err2, result2) => {
       if (err2) return res.status(500).json({ error: err2.message });
 
@@ -44,15 +46,37 @@ router.post("/login", async (req, res) => {
         if (isMatch2) {
           return res.json({ role: "vet", message: "Login success", user: vet });
         } else {
-            return res.status(400).json({ error: "Not found this VetExpert" });
+          return res.status(400).json({ error: "Not found this VetExpert" });
         }
       }
 
-      // ถ้าไม่เจอในทั้งสอง table
-      return res.status(400).json({ error: "Invalid Users" });
+      // check Admins
+      const adminSql =
+        "SELECT * FROM Admins WHERE admin_name = ? OR phonenumber = ? OR admin_email = ?";
+      conn.query(adminSql, [loginId, loginId, loginId], async (err3, result3) => {
+        if (err3) return res.status(500).json({ error: err3.message });
+
+        if (result3.length > 0) {
+          const admin = result3[0];
+          const isMatch3 = await bcrypt.compare(password, admin.admin_password);
+          if (isMatch3) {
+            return res.json({
+              role: "admin",
+              message: "Login success",
+              user: admin,
+            });
+          } else {
+            return res.status(400).json({ error: "Not found this Admin" });
+          }
+        }
+
+        // ถ้าไม่เจอในทั้งสาม table
+        return res.status(400).json({ error: "Invalid Users" });
+      });
     });
   });
 });
+
 
 
 // Search *****

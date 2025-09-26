@@ -1,10 +1,14 @@
-import express from "express";
+//import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import express, { Request, Response } from "express";
+import cloudinary from "../src/config/cloudinary";
 
 export const router = express.Router();
+const upload = multer({ dest: "uploads/" });
 
 // router.get("/", (req, res) => {
 //   if (req.query.id) {
@@ -145,36 +149,56 @@ router.post("/register", async (req, res) => {
 
 
 // edit profile *****
-router.put("/edit/:id", async (req, res) => {
-  const id = +req.params.id;
-  let farmer: FarmerPostRequest = req.body;
+router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
+  try {
+    const id = +req.params.id;
+    let farmer: FarmerPostRequest = req.body;
 
-  let farmerOriginal: FarmerPostRequest | undefined;
-  let sql = mysql.format("select * from Farmers where id =? ", [id]);
-  let result = await queryAsync(sql);
-  const jsonStr = JSON.stringify(result);
-  const jsonObj = JSON.parse(jsonStr);
-  const rawData = jsonObj;
-  farmerOriginal = rawData[0];
+    // กำหนด type ให้ result ชัดเจน
+    let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
+    let result = await queryAsync(sql) as FarmerPostRequest[];
 
-  const updataFarmer = { ...farmerOriginal, ...farmer };
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Farmer not found" });
+    }
+    const farmerOriginal = result[0];
 
-  //update
-  sql =
-    "update  `Farmers` set `farm_name`=?,`phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? where `id`=?";
-  sql = mysql.format(sql, [
-    updataFarmer.farm_name,
-    updataFarmer.phonenumber,
-    updataFarmer.farmer_email,
-    updataFarmer.profile_image,
-    updataFarmer.farm_address,
-    id,
-  ]);
-  conn.query(sql, (err, result) => {
-    if (err) throw err;
-    res.status(200).json({ affected_row: result.affectedRows });
-  });
+    // อัพโหลดรูปใหม่ถ้ามี
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "farmers_profile",
+      });
+      farmer.profile_image = uploadResult.secure_url;
+    }
+
+    const updatedFarmer = { ...farmerOriginal, ...farmer };
+
+    sql =
+      "UPDATE `Farmers` SET `farm_name`=?, `phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? WHERE `id`=?";
+    sql = mysql.format(sql, [
+      updatedFarmer.farm_name,
+      updatedFarmer.phonenumber,
+      updatedFarmer.farmer_email,
+      updatedFarmer.profile_image,
+      updatedFarmer.farm_address,
+      id,
+    ]);
+
+    conn.query(sql, (err, result) => {
+      if (err) throw err;
+      res.status(200).json({
+        message: "Profile updated successfully",
+        affected_row: (result as any).affectedRows,
+        profile_image: updatedFarmer.profile_image,
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Update failed" });
+  }
 });
+
+
 
 // change password *****
 router.put("/changepass/:id", async (req, res) => {

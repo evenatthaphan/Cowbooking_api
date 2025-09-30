@@ -154,7 +154,7 @@ router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res
     const id = +req.params.id;
     let farmer: FarmerPostRequest = req.body;
 
-    // กำหนด type ให้ result ชัดเจน
+    // กำหนด type ให้ result 
     let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
     let result = await queryAsync(sql) as FarmerPostRequest[];
 

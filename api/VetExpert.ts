@@ -12,7 +12,7 @@ export const router = express.Router();
 //import { initializeApp } from "firebase/app";
 const upload = multer({ dest: "uploads/" });
 const RECAPTCHA_SECRET =
-  process.env.RECAPTCHA_SECRET || "6Lelg9krAAAAAPt6l1_NUgB3OQXr5-Oaye-iRmjW";
+  process.env.RECAPTCHA_SECRET || "6LdMm9krAAAAANrLTlY6-DxKNqB9pUZEFLX9kMwC";
 
 //test get VetExperts (db connect)
 router.get("/getVetExperts", (req, res) => {

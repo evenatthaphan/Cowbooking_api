@@ -6,12 +6,13 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import cloudinary from "../src/config/cloudinary";
 import { promises as fs } from "fs";
-
+import axios from "axios";
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
 const upload = multer({ dest: "uploads/" });
-
+const RECAPTCHA_SECRET =
+  process.env.RECAPTCHA_SECRET || "6Lelg9krAAAAAPt6l1_NUgB3OQXr5-Oaye-iRmjW";
 
 //test get VetExperts (db connect)
 router.get("/getVetExperts", (req, res) => {
@@ -26,7 +27,6 @@ router.get("/getVetExperts", (req, res) => {
     res.json(result);
   });
 });
-
 
 // getVetExperts where id
 router.get("/getVetExperts/:id", (req, res) => {
@@ -45,13 +45,29 @@ router.get("/getVetExperts/:id", (req, res) => {
   });
 });
 
-
 // post register *****
 router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
   try {
     console.log("req.body:", req.body);
 
     let VetExperts = req.body;
+
+    if (!VetExperts.recaptchaToken) {
+      return res.status(400).json({ error: "reCAPTCHA token is required" });
+    }
+
+    try {
+      // ตรวจสอบกับ Google reCAPTCHA API
+      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
+      const response = await axios.post(verifyUrl);
+
+      if (!response.data.success) {
+        return res.status(400).json({ error: "Failed reCAPTCHA verification" });
+      }
+    } catch (err) {
+      console.error("reCAPTCHA verification failed:", err);
+      return res.status(500).json({ error: "reCAPTCHA verification failed" });
+    }
 
     if (!VetExperts.VetExpert_name) {
       return res.status(400).json({ error: "VetExpert_name is required" });
@@ -68,14 +84,14 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       });
     }
 
-    // upload to Cloudinary 
+    // upload to Cloudinary
     let uploadResult = null;
     if (req.file) {
       uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "vet_experts", // floder Cloudinary
       });
 
-      // 
+      //
       await fs.unlink(req.file.path);
     }
 
@@ -122,8 +138,6 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {
@@ -178,7 +192,6 @@ router.post("/insertfarm", (req, res) => {
   });
 });
 
-
 // add schedule
 // router.post("/vet/schedule", async (req, res) => {
 //   try {
@@ -208,8 +221,6 @@ router.post("/insertfarm", (req, res) => {
 //   }
 // });
 
-
-
 // class FileMiddleware {
 //   filename = "";
 //   public readonly diskLoader = multer({
@@ -221,7 +232,7 @@ router.post("/insertfarm", (req, res) => {
 // });
 // }
 
-// const fileUpload = new FileMiddleware(); 
+// const fileUpload = new FileMiddleware();
 // router.post("/", fileUpload.diskLoader.single("Photo"), async (req, res) => {
 //   const userId = req.body.UserID;
 //   console.log("UserID:", userId);
@@ -239,12 +250,11 @@ router.post("/insertfarm", (req, res) => {
 //     const count = 10;
 //     console.log(Photo);
 //     console.log(count);
-    
 
 //     // บันทึกข้อมูลลงในฐานข้อมูล MySQL
 //     const UserID = req.body;
 //     // console.log("jju"+UserID);
-    
+
 //     let sql = "INSERT INTO image (userID, imageURL, uploadDate, voteCount, imageName) VALUES (?, ?, NOW(), ?, ?)";
 //     sql = mysql.format(sql,[req.body.UserID, url, count, req.body.imageName]);
 //     conn.query(sql, (err, result) => {

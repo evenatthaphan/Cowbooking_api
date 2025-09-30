@@ -6,9 +6,13 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import express, { Request, Response } from "express";
 import cloudinary from "../src/config/cloudinary";
+import axios from "axios";
+
 
 export const router = express.Router();
 const upload = multer({ dest: "uploads/" });
+
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "6Lelg9krAAAAAPt6l1_NUgB3OQXr5-Oaye-iRmjW";
 
 // router.get("/", (req, res) => {
 //   if (req.query.id) {
@@ -54,15 +58,32 @@ router.get("/getfarmer/:id", (req, res) => {
 });
 
 // farmer register *****
-router.post("/register", async (req, res) => {
+router.post("/register", async (req: Request, res: Response) => {
   console.log("req.body:", req.body);
 
   let Farmer = req.body;
 
+  // ตรวจสอบว่า recaptcha token ถูกส่งมาหรือไม่
+  if (!Farmer.recaptchaToken) {
+    return res.status(400).json({ error: "reCAPTCHA token is required" });
+  }
+
+  try {
+    // ตรวจสอบกับ Google reCAPTCHA API
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${Farmer.recaptchaToken}`;
+    const response = await axios.post(verifyUrl);
+
+    if (!response.data.success) {
+      return res.status(400).json({ error: "Failed reCAPTCHA verification" });
+    }
+  } catch (err) {
+    console.error("reCAPTCHA verification failed:", err);
+    return res.status(500).json({ error: "reCAPTCHA verification failed" });
+  }
+
+  // ✅ validation field ต่าง ๆ
   if (!Farmer.farm_name) {
-    return res
-      .status(400)
-      .json({ error: "farm_name is required", body: Farmer });
+    return res.status(400).json({ error: "farm_name is required" });
   }
   if (!Farmer.phonenumber) {
     return res.status(400).json({ error: "phonenumber is required" });
@@ -71,9 +92,10 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ error: "farm_password is required" });
   }
   if (!Farmer.province || !Farmer.district || !Farmer.locality) {
-    return res.status(400).json({ error: "province, district and locality are required" });
+    return res
+      .status(400)
+      .json({ error: "province, district and locality are required" });
   }
-
 
   // เช็คเบอร์ซ้ำ
   const checkSql =
@@ -84,9 +106,7 @@ router.post("/register", async (req, res) => {
     async (err, rows) => {
       if (err) {
         console.error("Error checking phonenumber and email:", err);
-        return res
-          .status(500)
-          .json({ error: "Error checking phonenumber and email" });
+        return res.status(500).json({ error: "Error checking phonenumber and email" });
       }
 
       if (rows.length > 0) {
@@ -94,7 +114,7 @@ router.post("/register", async (req, res) => {
         if (existing.phonenumber === Farmer.phonenumber) {
           return res.status(400).json({ error: "Phonenumber already exists" });
         }
-        if (existing.VetExpert_email === Farmer.farmer_email) {
+        if (existing.farmer_email === Farmer.farmer_email) {
           return res.status(400).json({ error: "Email already exists" });
         }
       }
@@ -124,7 +144,7 @@ router.post("/register", async (req, res) => {
             Farmer.farm_address,
             Farmer.province,
             Farmer.district,
-            Farmer.locality
+            Farmer.locality,
           ],
           (err, result) => {
             if (err) {

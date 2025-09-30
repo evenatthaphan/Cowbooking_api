@@ -12,7 +12,7 @@ import axios from "axios";
 export const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "6Lelg9krAAAAAPt6l1_NUgB3OQXr5-Oaye-iRmjW";
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "6LdMm9krAAAAANrLTlY6-DxKNqB9pUZEFLX9kMwC";
 
 // router.get("/", (req, res) => {
 //   if (req.query.id) {

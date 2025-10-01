@@ -57,6 +57,7 @@ router.get("/getfarmer/:id", (req, res) => {
   });
 });
 
+
 // farmer register *****
 router.post("/register", async (req: Request, res: Response) => {
   console.log("req.body:", req.body);

@@ -4,12 +4,14 @@ if (!process.env.FIREBASE_ADMIN_SDK) {
   throw new Error("FIREBASE_ADMIN_SDK environment variable is not set");
 }
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
+const raw = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
 
-// Initialize Firebase only once
+// แปลง \n เป็น newline จริง
+raw.private_key = raw.private_key.replace(/\\n/g, '\n');
+
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(raw),
   });
 }
 

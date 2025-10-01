@@ -1,15 +1,18 @@
 import express from "express";
 import crypto from "crypto";
-import admin from "firebase-admin";
-import path from "path";
-
+//import path from "path";
 export const router = express.Router();
 
 // Path ไฟล์ JSON ของ service account
-const serviceAccountPath = path.resolve("D:/Senoir Project/firebase-adminsdk.json"); 
-const serviceAccount = require(serviceAccountPath);
+// const serviceAccountPath = path.resolve("D:/Senoir Project/firebase-adminsdk.json"); 
+// const serviceAccount = require(serviceAccountPath);
 
-// init firebase
+import admin from "firebase-admin";
+import serviceAccountJson from "../firebase-adminsdk.json";
+import { ServiceAccount } from "firebase-admin";
+
+const serviceAccount = serviceAccountJson as unknown as ServiceAccount;
+
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

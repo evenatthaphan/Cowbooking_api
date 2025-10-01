@@ -6,10 +6,13 @@ export const router = express.Router();
 
 
 // init firebase
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(), // หรือใช้ serviceAccountKey.json
-});
-const db = admin.firestore();
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+  });
+}
+
+const db = admin.firestore(); 
 
 
 function generateCaptcha(len = 6) {

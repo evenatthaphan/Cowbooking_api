@@ -64,25 +64,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
   let Farmer = req.body;
 
-  // ตรวจสอบว่า recaptcha token ถูกส่งมาหรือไม่
-  if (!Farmer.recaptchaToken) {
-    return res.status(400).json({ error: "reCAPTCHA token is required" });
-  }
-
-  try {
-    // ตรวจสอบกับ Google reCAPTCHA API
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${Farmer.recaptchaToken}`;
-    const response = await axios.post(verifyUrl);
-
-    if (!response.data.success) {
-      return res.status(400).json({ error: "Failed reCAPTCHA verification" });
-    }
-  } catch (err) {
-    console.error("reCAPTCHA verification failed:", err);
-    return res.status(500).json({ error: "reCAPTCHA verification failed" });
-  }
-
-  // ✅ validation field ต่าง ๆ
+  // validation field ต่าง ๆ
   if (!Farmer.farm_name) {
     return res.status(400).json({ error: "farm_name is required" });
   }
@@ -107,7 +89,9 @@ router.post("/register", async (req: Request, res: Response) => {
     async (err, rows) => {
       if (err) {
         console.error("Error checking phonenumber and email:", err);
-        return res.status(500).json({ error: "Error checking phonenumber and email" });
+        return res
+          .status(500)
+          .json({ error: "Error checking phonenumber and email" });
       }
 
       if (rows.length > 0) {
@@ -121,7 +105,7 @@ router.post("/register", async (req: Request, res: Response) => {
       }
 
       try {
-        // hash
+        // hash password
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(
           Farmer.farm_password,
@@ -166,6 +150,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
   );
 });
+
 
 
 

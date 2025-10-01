@@ -1,26 +1,8 @@
 import express from "express";
 import crypto from "crypto";
-//import path from "path";
+import { db, serverTimestamp } from "../firebaseconnect";
+
 export const router = express.Router();
-
-// Path ไฟล์ JSON ของ service account
-// const serviceAccountPath = path.resolve("D:/Senoir Project/firebase-adminsdk.json"); 
-// const serviceAccount = require(serviceAccountPath);
-
-import admin from "firebase-admin";
-import serviceAccountJson from "../firebase-adminsdk.json";
-import { ServiceAccount } from "firebase-admin";
-
-const serviceAccount = serviceAccountJson as unknown as ServiceAccount;
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
-const db = admin.firestore();
-
 
 function generateCaptcha(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz123456789";
@@ -31,14 +13,12 @@ function generateCaptcha(len = 6) {
   return s;
 }
 
-
 interface CaptchaData {
   text: string;
   expiresAt: number;
   used: boolean;
   createdAt: FirebaseFirestore.Timestamp;
 }
-
 
 // สร้าง captcha
 router.get("/captcha", async (req, res) => {
@@ -50,38 +30,28 @@ router.get("/captcha", async (req, res) => {
     text: code,
     expiresAt,
     used: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
   });
 
-  res.json({
-    captchaId,
-    captcha: code, 
-  });
+  res.json({ captchaId, captcha: code });
 });
-
 
 // ตรวจสอบ captcha
 router.post("/captcha/verify", async (req, res) => {
   const { captchaId, answer } = req.body;
   const doc = await db.collection("captchas").doc(captchaId).get();
 
-  if (!doc.exists) {
+  if (!doc.exists)
     return res.status(400).json({ success: false, message: "not found" });
-  }
 
   const data = doc.data() as CaptchaData;
 
-  if (data.used) {
+  if (data.used)
     return res.status(400).json({ success: false, message: "already used" });
-  }
-
-  if (Date.now() > data.expiresAt) {
+  if (Date.now() > data.expiresAt)
     return res.status(400).json({ success: false, message: "expired" });
-  }
-
-  if (data.text !== answer) {
+  if (data.text !== answer)
     return res.status(400).json({ success: false, message: "wrong" });
-  }
 
   await db.collection("captchas").doc(captchaId).update({ used: true });
   res.json({ success: true, message: "ok" });

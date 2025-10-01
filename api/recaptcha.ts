@@ -17,42 +17,57 @@ interface CaptchaData {
   text: string;
   expiresAt: number;
   used: boolean;
-  createdAt: FirebaseFirestore.Timestamp;
+  createdAt: FirebaseFirestore.FieldValue;
 }
 
 // สร้าง captcha
 router.get("/captcha", async (req, res) => {
-  const code = generateCaptcha(6);
-  const captchaId = crypto.randomBytes(8).toString("hex");
-  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 นาที
+  try {
+    const code = generateCaptcha(6);
+    const captchaId = crypto.randomBytes(8).toString("hex");
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 นาที
 
-  await db.collection("captchas").doc(captchaId).set({
-    text: code,
-    expiresAt,
-    used: false,
-    createdAt: serverTimestamp(),
-  });
+    await db.collection("captchas").doc(captchaId).set({
+      text: code,
+      expiresAt,
+      used: false,
+      createdAt: serverTimestamp(),
+    });
 
-  res.json({ captchaId, captcha: code });
+    res.json({ captchaId, captcha: code });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "internal error" });
+  }
 });
 
 // ตรวจสอบ captcha
 router.post("/captcha/verify", async (req, res) => {
-  const { captchaId, answer } = req.body;
-  const doc = await db.collection("captchas").doc(captchaId).get();
+  try {
+    const { captchaId, answer } = req.body;
 
-  if (!doc.exists)
-    return res.status(400).json({ success: false, message: "not found" });
+    if (!captchaId || !answer) {
+      return res.status(400).json({ success: false, message: "invalid input" });
+    }
 
-  const data = doc.data() as CaptchaData;
+    const doc = await db.collection("captchas").doc(captchaId).get();
 
-  if (data.used)
-    return res.status(400).json({ success: false, message: "already used" });
-  if (Date.now() > data.expiresAt)
-    return res.status(400).json({ success: false, message: "expired" });
-  if (data.text !== answer)
-    return res.status(400).json({ success: false, message: "wrong" });
+    if (!doc.exists)
+      return res.status(400).json({ success: false, message: "not found" });
 
-  await db.collection("captchas").doc(captchaId).update({ used: true });
-  res.json({ success: true, message: "ok" });
+    const data = doc.data() as CaptchaData;
+
+    if (data.used)
+      return res.status(400).json({ success: false, message: "already used" });
+    if (Date.now() > data.expiresAt)
+      return res.status(400).json({ success: false, message: "expired" });
+    if (data.text !== answer)
+      return res.status(400).json({ success: false, message: "wrong" });
+
+    await db.collection("captchas").doc(captchaId).update({ used: true });
+    res.json({ success: true, message: "ok" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "internal error" });
+  }
 });

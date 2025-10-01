@@ -30,4 +30,4 @@ app.use("/", index);
 app.use("/farmer", farmers);
 app.use("/vet", vetexpert);
 app.use("/together", usedtogether);
-app.use("/", recaptcha);  ///**** */
+app.use("/api", recaptcha);  ///**** */

@@ -1,12 +1,12 @@
 import admin from "firebase-admin";
-import path from "path";
 
-// path ของไฟล์ JSON นอก project
-const serviceAccountPath = path.resolve("D:/Senoir Project/firebase-adminsdk.json");
+if (!process.env.FIREBASE_ADMIN_SDK) {
+  throw new Error("FIREBASE_ADMIN_SDK environment variable is not set");
+}
 
-// Admin SDK จะอ่าน credential จากไฟล์ JSON
-const serviceAccount = require(serviceAccountPath);
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
 
+// Initialize Firebase only once
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

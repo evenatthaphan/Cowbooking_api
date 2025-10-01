@@ -4,6 +4,8 @@ import admin from "firebase-admin";
 
 export const router = express.Router();
 
+process.env.FIRESTORE_ENABLE_TRACING = "false";
+
 
 // init firebase
 if (!admin.apps.length) {

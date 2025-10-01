@@ -1,18 +1,22 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import crypto from "crypto";
 import admin from "firebase-admin";
+import path from "path";
 
 export const router = express.Router();
 
-process.env.FIRESTORE_ENABLE_TRACING = "false";
-
+// Path ไฟล์ JSON ของ service account
+const serviceAccountPath = path.resolve("D:/Senoir Project/firebase-adminsdk.json"); 
+const serviceAccount = require(serviceAccountPath);
 
 // init firebase
 if (!admin.apps.length) {
-  admin.initializeApp(); //  default credentials จาก env
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
 
-const db = admin.firestore(); 
+const db = admin.firestore();
 
 
 function generateCaptcha(len = 6) {

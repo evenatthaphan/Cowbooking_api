@@ -9,9 +9,7 @@ process.env.FIRESTORE_ENABLE_TRACING = "false";
 
 // init firebase
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
+  admin.initializeApp(); //  default credentials จาก env
 }
 
 const db = admin.firestore(); 

@@ -4,14 +4,14 @@ if (!process.env.FIREBASE_ADMIN_SDK) {
   throw new Error("FIREBASE_ADMIN_SDK environment variable is not set");
 }
 
-const raw = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK);
 
 // แปลง \n เป็น newline จริง
-raw.private_key = raw.private_key.replace(/\\n/g, '\n');
+serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(raw),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 

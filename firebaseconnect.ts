@@ -15,5 +15,8 @@ if (!admin.apps.length) {
   });
 }
 
+console.log(admin.app().options.projectId);
+
+
 export const db = admin.firestore();
 export const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;

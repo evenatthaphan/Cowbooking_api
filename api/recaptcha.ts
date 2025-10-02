@@ -28,7 +28,7 @@ interface CaptchaData {
 router.get("/captcha", async (req, res) => {
   try {
     const code = generateCaptcha(6);
-    const captchaId = crypto.randomBytes(8).toString("hex");
+    const captchaId = crypto.randomBytes(8).toString("base64");
 
     // ใช้ Firestore Timestamp สำหรับหมดอายุ
     const expiresAt = Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)); // 5 นาที

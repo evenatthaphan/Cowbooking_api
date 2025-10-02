@@ -15,6 +15,7 @@ function generateCaptcha(len = 6) {
   return s;
 }
 
+
 // interface สำหรับ TypeScript
 interface CaptchaData {
   text: string;

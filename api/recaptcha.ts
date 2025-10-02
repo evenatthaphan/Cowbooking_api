@@ -64,8 +64,6 @@ router.get("/captcha", async (req: Request, res: Response) => {
   }
 });
 
-
-
 //captcha
 router.post("/captcha/verify", (req: Request, res: Response) => {
   try {
@@ -74,6 +72,8 @@ router.post("/captcha/verify", (req: Request, res: Response) => {
     if (!captchaId || !answer) {
       return res.status(400).json({ success: false, message: "invalid input" });
     }
+
+    const moment = require("moment-timezone"); // moment-timezone
 
     const sqlSelect = "SELECT * FROM captchas WHERE id = ?";
     conn.query(sqlSelect, [captchaId], (err, rows) => {
@@ -93,9 +93,15 @@ router.post("/captcha/verify", (req: Request, res: Response) => {
           .status(400)
           .json({ success: false, message: "already used" });
       }
-      if (new Date() > new Date(captcha.expires_at)) {
+
+      // ใช้ moment-timezone เปรียบเทียบเวลา
+      const now = moment().tz("Asia/Bangkok");
+      const expiresAt = moment(captcha.expires_at).tz("Asia/Bangkok");
+
+      if (now.isAfter(expiresAt)) {
         return res.status(400).json({ success: false, message: "expired" });
       }
+
       if (captcha.text !== answer) {
         return res.status(400).json({ success: false, message: "wrong" });
       }
@@ -118,4 +124,3 @@ router.post("/captcha/verify", (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "internal error" });
   }
 });
-

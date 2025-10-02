@@ -1,9 +1,11 @@
 import express from "express";
 import crypto from "crypto";
 import { db, serverTimestamp } from "../firebaseconnect";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 
 export const router = express.Router();
 
+// ฟังก์ชันสุ่ม captcha
 function generateCaptcha(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz123456789";
   let s = "";
@@ -13,11 +15,12 @@ function generateCaptcha(len = 6) {
   return s;
 }
 
+// interface สำหรับ TypeScript
 interface CaptchaData {
   text: string;
-  expiresAt: number;
+  expiresAt: Timestamp;
   used: boolean;
-  createdAt: FirebaseFirestore.FieldValue;
+  createdAt: FieldValue;
 }
 
 // สร้าง captcha
@@ -25,8 +28,11 @@ router.get("/captcha", async (req, res) => {
   try {
     const code = generateCaptcha(6);
     const captchaId = crypto.randomBytes(8).toString("hex");
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 นาที
 
+    // ใช้ Firestore Timestamp สำหรับหมดอายุ
+    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)); // 5 นาที
+
+    // บันทึกเอกสาร
     await db.collection("captchas").doc(captchaId).set({
       text: code,
       expiresAt,
@@ -52,19 +58,29 @@ router.post("/captcha/verify", async (req, res) => {
 
     const doc = await db.collection("captchas").doc(captchaId).get();
 
-    if (!doc.exists)
+    if (!doc.exists) {
       return res.status(400).json({ success: false, message: "not found" });
+    }
 
     const data = doc.data() as CaptchaData;
+    if (!data) {
+      return res.status(400).json({ success: false, message: "not found" });
+    }
 
-    if (data.used)
+    // ตรวจสอบ captcha
+    if (data.used) {
       return res.status(400).json({ success: false, message: "already used" });
-    if (Date.now() > data.expiresAt)
+    }
+    if (Timestamp.now().toMillis() > data.expiresAt.toMillis()) {
       return res.status(400).json({ success: false, message: "expired" });
-    if (data.text !== answer)
+    }
+    if (data.text !== answer) {
       return res.status(400).json({ success: false, message: "wrong" });
+    }
 
+    // อัปเดตว่าใช้แล้ว
     await db.collection("captchas").doc(captchaId).update({ used: true });
+
     res.json({ success: true, message: "ok" });
   } catch (err) {
     console.error(err);

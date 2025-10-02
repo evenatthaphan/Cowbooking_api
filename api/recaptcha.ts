@@ -1,7 +1,6 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import crypto from "crypto";
-import { db, serverTimestamp } from "../firebaseconnect";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import { conn, queryAsync } from "../dbconnect";
 
 export const router = express.Router();
 
@@ -15,41 +14,60 @@ function generateCaptcha(len = 6) {
   return s;
 }
 
-
-// interface สำหรับ TypeScript
+// interface สำหรับ TypeScript (ใช้ Date แทน Firestore)
 interface CaptchaData {
+  id: string;
   text: string;
-  expiresAt: Timestamp;
+  expiresAt: Date;
   used: boolean;
-  createdAt: FieldValue;
+  createdAt: Date;
 }
 
-// สร้าง captcha
-router.get("/captcha", async (req, res) => {
+//captcha
+router.get("/captcha", async (req: Request, res: Response) => {
   try {
     const code = generateCaptcha(6);
-    const captchaId = crypto.randomBytes(8).toString("base64");
+    const captchaId = crypto.randomBytes(8).toString("hex");
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 นาที
+    const createdAt = new Date();
 
-    // ใช้ Firestore Timestamp สำหรับหมดอายุ
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)); // 5 นาที
+    const sql = `
+      INSERT INTO captchas (id, text, expires_at, used, created_at) 
+      VALUES (?, ?, ?, ?, ?)
+    `;
 
-    // บันทึกเอกสาร
-    await db.collection("captchas").doc(captchaId).set({
-      text: code,
-      expiresAt,
-      used: false,
-      createdAt: serverTimestamp(),
-    });
+    conn.query(
+      sql,
+      [
+        captchaId,
+        code,
+        expiresAt.toISOString().slice(0, 19).replace("T", " "),
+        false,
+        createdAt.toISOString().slice(0, 19).replace("T", " "),
+      ],
+      (err, result) => {
+        if (err) {
+          console.error("Error inserting captcha:", err);
+          return res.status(500).json({ error: "Error inserting captcha" });
+        }
 
-    res.json({ captchaId, captcha: code });
+        res.status(201).json({
+          message: "Captcha generated successfully",
+          captchaId: captchaId,
+          captcha: code,
+        });
+      }
+    );
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "internal error" });
+    console.error("Captcha create error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// ตรวจสอบ captcha
-router.post("/captcha/verify", async (req, res) => {
+
+
+//captcha
+router.post("/captcha/verify", (req: Request, res: Response) => {
   try {
     const { captchaId, answer } = req.body;
 
@@ -57,34 +75,47 @@ router.post("/captcha/verify", async (req, res) => {
       return res.status(400).json({ success: false, message: "invalid input" });
     }
 
-    const doc = await db.collection("captchas").doc(captchaId).get();
+    const sqlSelect = "SELECT * FROM captchas WHERE id = ?";
+    conn.query(sqlSelect, [captchaId], (err, rows) => {
+      if (err) {
+        console.error("Error selecting captcha:", err);
+        return res.status(500).json({ success: false, message: "db error" });
+      }
 
-    if (!doc.exists) {
-      return res.status(400).json({ success: false, message: "not found" });
-    }
+      if (rows.length === 0) {
+        return res.status(400).json({ success: false, message: "not found" });
+      }
 
-    const data = doc.data() as CaptchaData;
-    if (!data) {
-      return res.status(400).json({ success: false, message: "not found" });
-    }
+      const captcha = rows[0];
 
-    // ตรวจสอบ captcha
-    if (data.used) {
-      return res.status(400).json({ success: false, message: "already used" });
-    }
-    if (Timestamp.now().toMillis() > data.expiresAt.toMillis()) {
-      return res.status(400).json({ success: false, message: "expired" });
-    }
-    if (data.text !== answer) {
-      return res.status(400).json({ success: false, message: "wrong" });
-    }
+      if (captcha.used) {
+        return res
+          .status(400)
+          .json({ success: false, message: "already used" });
+      }
+      if (new Date() > new Date(captcha.expires_at)) {
+        return res.status(400).json({ success: false, message: "expired" });
+      }
+      if (captcha.text !== answer) {
+        return res.status(400).json({ success: false, message: "wrong" });
+      }
 
-    // อัปเดตว่าใช้แล้ว
-    await db.collection("captchas").doc(captchaId).update({ used: true });
+      // mark ว่าใช้แล้ว
+      const sqlUpdate = "UPDATE captchas SET used = ? WHERE id = ?";
+      conn.query(sqlUpdate, [true, captchaId], (err2) => {
+        if (err2) {
+          console.error("Error updating captcha:", err2);
+          return res
+            .status(500)
+            .json({ success: false, message: "db update error" });
+        }
 
-    res.json({ success: true, message: "ok" });
+        return res.json({ success: true, message: "ok" });
+      });
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Captcha verify error:", err);
     res.status(500).json({ success: false, message: "internal error" });
   }
 });
+

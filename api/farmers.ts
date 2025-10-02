@@ -153,7 +153,6 @@ router.post("/register", async (req: Request, res: Response) => {
 
 
 
-
 // edit profile *****
 router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
   try {

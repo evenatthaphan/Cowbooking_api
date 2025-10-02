@@ -17,6 +17,6 @@ if (!admin.apps.length) {
 
 console.log(admin.app().options.projectId);
 
-
+console.log("Project ID in service account:", serviceAccount.project_id);
 export const db = admin.firestore();
 export const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;

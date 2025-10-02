@@ -73,8 +73,6 @@ router.post("/captcha/verify", (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "invalid input" });
     }
 
-    const moment = require("moment-timezone"); // moment-timezone
-
     const sqlSelect = "SELECT * FROM captchas WHERE id = ?";
     conn.query(sqlSelect, [captchaId], (err, rows) => {
       if (err) {
@@ -93,15 +91,9 @@ router.post("/captcha/verify", (req: Request, res: Response) => {
           .status(400)
           .json({ success: false, message: "already used" });
       }
-
-      // ใช้ moment-timezone เปรียบเทียบเวลา
-      const now = moment().tz("Asia/Bangkok");
-      const expiresAt = moment(captcha.expires_at).tz("Asia/Bangkok");
-
-      if (now.isAfter(expiresAt)) {
+      if (new Date() > new Date(captcha.expires_at)) {
         return res.status(400).json({ success: false, message: "expired" });
       }
-
       if (captcha.text !== answer) {
         return res.status(400).json({ success: false, message: "wrong" });
       }

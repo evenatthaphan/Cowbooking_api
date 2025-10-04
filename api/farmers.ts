@@ -64,7 +64,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
   let Farmer = req.body;
 
-  // validation field ต่าง ๆ
+  // validation field 
   if (!Farmer.farm_name) {
     return res.status(400).json({ error: "farm_name is required" });
   }

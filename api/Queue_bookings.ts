@@ -63,7 +63,7 @@ router.post("/queue/book", async (req, res) => {
     ]);
 
     // update status vet_schedules that is_booked = true
-    await queryAsync("UPDATE vet_schedules SET is_booked = true WHERE id = ?", [
+    await queryAsync("UPDATE Vet_schedules SET is_booked = true WHERE id = ?", [
       schedule_id,
     ]);
 

@@ -221,7 +221,7 @@ router.post("/vet/schedule", async (req, res) => {
     for (const time of times) {
       // ตรวจสอบเวลาซ้ำ
       const existing: any = await queryAsync(
-        "SELECT id FROM vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
+        "SELECT id FROM Vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
         [vet_expert_id, available_date, time]
       );
 

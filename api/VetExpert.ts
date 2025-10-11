@@ -244,13 +244,17 @@ router.post("/vet/schedule", async (req, res) => {
       message: "Schedules added successfully",
       schedule_ids: insertedIds,
     });
-  } catch (err) {
-    console.error("Error adding schedule:", err);
-    return res.status(500).json({ error: "Internal server error" });
+  } catch (err: any) {
+    console.error(
+      "Error adding schedule:",
+      err.sqlMessage || err.message || err
+    );
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err.sqlMessage || err.message,
+    });
   }
 });
-
-
 
 // class FileMiddleware {
 //   filename = "";

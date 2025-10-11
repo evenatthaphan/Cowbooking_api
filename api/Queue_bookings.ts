@@ -2,20 +2,15 @@ import express from "express";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import { BookingResult } from "../model/data_post_request";
 
 export const router = express.Router();
-
 
 // queue_book ****
 router.post("/queue/book", async (req, res) => {
   try {
-    const {
-      farmer_id,
-      vet_expert_id,
-      bull_id,
-      schedule_id,
-      detailBull,
-    } = req.body;
+    const { farmer_id, vet_expert_id, bull_id, schedule_id, detailBull } =
+      req.body;
 
     // check important fild
     if (!farmer_id || !vet_expert_id || !schedule_id) {
@@ -37,7 +32,7 @@ router.post("/queue/book", async (req, res) => {
     // get day and time
     const { available_date, available_time } = schedules[0];
 
-    // 
+    //
     const status = "pending";
     const vet_notes = null;
     const created_at = new Date();
@@ -74,7 +69,10 @@ router.post("/queue/book", async (req, res) => {
       schedule: { available_date, available_time },
     });
   } catch (err: any) {
-    console.error("Error inserting booking:", err.sqlMessage || err.message || err);
+    console.error(
+      "Error inserting booking:",
+      err.sqlMessage || err.message || err
+    );
     return res.status(500).json({
       error: "Internal server error",
       details: err.sqlMessage || err.message,
@@ -82,10 +80,7 @@ router.post("/queue/book", async (req, res) => {
   }
 });
 
-
-
-
-// select all data booking
+// select all data booking ***
 router.get("/bookings", async (req, res) => {
   try {
     const sql = `
@@ -103,8 +98,8 @@ router.get("/bookings", async (req, res) => {
         f.name AS farmer_name,
         v.name AS vet_name
       FROM booking b
-      LEFT JOIN farmers f ON b.farmer_id = f.id
-      LEFT JOIN vet_experts v ON b.vet_expert_id = v.id
+      LEFT JOIN Farmers f ON b.farmer_id = f.id
+      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
       ORDER BY b.created_at DESC
     `;
 
@@ -116,8 +111,7 @@ router.get("/bookings", async (req, res) => {
   }
 });
 
-
-// select only farmer data booking
+// select only farmer data booking ***
 router.get("/bookings/farmer", async (req, res) => {
   try {
     const { farmer_id, vet_expert_id } = req.query;
@@ -137,8 +131,8 @@ router.get("/bookings/farmer", async (req, res) => {
         f.name AS farmer_name,
         v.name AS vet_name
       FROM booking b
-      LEFT JOIN farmers f ON b.farmer_id = f.id
-      LEFT JOIN vet_experts v ON b.vet_expert_id = v.id
+      LEFT JOIN Farmers f ON b.farmer_id = f.id
+      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
     `;
 
     const params = [];
@@ -156,6 +150,76 @@ router.get("/bookings/farmer", async (req, res) => {
     return res.status(200).json(results);
   } catch (err) {
     console.error("Error fetching bookings:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// get all booking for vetexpert ***
+router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
+  try {
+    const { vet_expert_id } = req.params;
+
+    const sql = `
+      SELECT 
+        b.id AS booking_id,
+        b.farmer_id,
+        f.name AS farmer_name,
+        b.vet_expert_id,
+        v.name AS vet_name,
+        b.bull_id,
+        b.schedule_id,
+        s.date AS schedule_date,
+        s.time AS schedule_time,
+        b.detailBull,
+        b.status,
+        b.vet_notes,
+        b.created_at
+      FROM booking b
+      LEFT JOIN Farmers f ON b.farmer_id = f.id
+      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
+      LEFT JOIN Vet_schedules s ON b.schedule_id = s.id
+      WHERE b.vet_expert_id = ?
+      ORDER BY b.created_at DESC
+    `;
+
+    const results = await queryAsync(sql, [vet_expert_id]);
+    return res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching vet bookings:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// vetexpert update status booking ****
+router.put("/bookings/update/:booking_id", async (req, res) => {
+  try {
+    const { booking_id } = req.params;
+    const { status, vet_notes } = req.body;
+
+    if (!status || !["accepted", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const sql = `
+      UPDATE Queue_bookings
+      SET status = ?, vet_notes = ?, updated_at = NOW()
+      WHERE id = ?
+    `;
+
+    const result = await queryAsync(
+      "UPDATE Queue_bookings SET status = ? WHERE id = ?",
+      ["accepted", booking_id]
+    );
+
+    if ((result as any).affectedRows === 0) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Booking status updated successfully" });
+  } catch (err) {
+    console.error("Error updating booking:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

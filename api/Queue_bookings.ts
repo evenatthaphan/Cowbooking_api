@@ -95,8 +95,8 @@ router.get("/bookings", async (req, res) => {
         b.vet_notes,
         b.created_at,
         b.updated_at,
-        f.name AS farmer_name,
-        v.name AS vet_name
+        f.farm_name AS farmer_name,
+        v.VetExpert_name AS vet_name
       FROM Queue_bookings b
       LEFT JOIN Farmers f ON b.farmer_id = f.id
       LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
@@ -128,8 +128,8 @@ router.get("/bookings/farmer", async (req, res) => {
         b.vet_notes,
         b.created_at,
         b.updated_at,
-        f.name AS farmer_name,
-        v.name AS vet_name
+        f.farm_name AS farmer_name,
+        v.VetExpert_name AS vet_name
       FROM Queue_bookings b
       LEFT JOIN Farmers f ON b.farmer_id = f.id
       LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
@@ -163,9 +163,9 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
       SELECT 
         b.id AS booking_id,
         b.farmer_id,
-        f.name AS farmer_name,
+        f.farm_name AS farmer_name,
         b.vet_expert_id,
-        v.name AS vet_name,
+        v.VetExpert_name AS vet_name,
         b.bull_id,
         b.schedule_id,
         s.date AS schedule_date,

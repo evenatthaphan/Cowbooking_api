@@ -1,5 +1,6 @@
 import express from "express";
 import { VetExpertPostRequest } from "../model/data_post_request";
+import { VetSchedulesPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import { error } from "console";
 import bcrypt from "bcrypt";
@@ -193,33 +194,58 @@ router.post("/insertfarm", (req, res) => {
 });
 
 // add schedule
-// router.post("/vet/schedule", async (req, res) => {
-//   try {
-//     const { vet_expert_id, available_date, available_time } = req.body;
+router.post("/vet/schedule", async (req, res) => {
+  try {
+    const body: VetSchedulesPostRequest = req.body;
+    const { vet_expert_id, available_date, available_time } = body;
 
-//     if (!vet_expert_id || !available_date || !available_time) {
-//       return res.status(400).json({ error: "Missing required fields" });
-//     }
+    // 
+    if (!vet_expert_id || !available_date || !available_time) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-//     const sql = `
-//       INSERT INTO vet_schedules (vet_expert_id, available_date, available_time)
-//       VALUES (?, ?, ?)
-//     `;
-//     const [result]: any = await queryAsync(sql, [
-//       vet_expert_id,
-//       available_date,
-//       available_time,
-//     ]);
+    // check vet_expert_id is existing on VetExperts 
+    const [experts]: any = await queryAsync(
+      "SELECT id FROM VetExperts WHERE id = ?",
+      [vet_expert_id]
+    );
 
-//     return res.status(201).json({
-//       message: "Schedule added",
-//       schedule_id: result.insertId,
-//     });
-//   } catch (err) {
-//     console.error("Error adding schedule:", err);
-//     return res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+    if (experts.length === 0) {
+      return res.status(404).json({ error: "Vet expert not found" });
+    }
+
+    // ตรวจสอบว่ามีตารางเวลาเดียวกันอยู่แล้วหรือไม่
+    const [existing]: any = await queryAsync(
+      "SELECT * FROM vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
+      [vet_expert_id, available_date, available_time]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Schedule already exists" });
+    }
+
+    // เพิ่มข้อมูลใหม่
+    const sql = `
+      INSERT INTO vet_schedules (vet_expert_id, available_date, available_time, is_booked)
+      VALUES (?, ?, ?, false)
+    `;
+    const [result]: any = await queryAsync(sql, [
+      vet_expert_id,
+      available_date,
+      available_time,
+    ]);
+
+    return res.status(201).json({
+      message: "Schedule added successfully",
+      schedule_id: result.insertId,
+    });
+  } catch (err) {
+    console.error("Error adding schedule:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
 // class FileMiddleware {
 //   filename = "";

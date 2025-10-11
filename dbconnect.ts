@@ -12,5 +12,17 @@ export const conn = mysql.createPool(
     }
 );
 
+
+
 //get original data first 
-export const queryAsync = util.promisify(conn.query).bind(conn);
+//export const queryAsync = util.promisify(conn.query).bind(conn);
+
+export const queryAsync = (sql: string, params?: any[]) => {
+  return new Promise((resolve, reject) => {
+    conn.query(sql, params, (err, results) => {
+      if (err) return reject(err);
+      resolve(results);
+    });
+  });
+};
+

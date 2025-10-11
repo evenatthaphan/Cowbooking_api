@@ -232,3 +232,9 @@ export interface Adminsrequest {
 
 
 
+export interface BookingResult {
+  id: number;
+  status: string;
+  vet_notes: string;
+  updated_at: string;
+}

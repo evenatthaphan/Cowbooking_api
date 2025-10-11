@@ -228,7 +228,7 @@ router.post("/vet/schedule", async (req, res) => {
       if (existing.length > 0) continue; // ข้ามเวลาที่มีอยู่แล้ว
 
       const result: any = await queryAsync(
-        "INSERT INTO vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",
+        "INSERT INTO Vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",
         [vet_expert_id, available_date, time]
       );
       insertedIds.push(result.insertId);

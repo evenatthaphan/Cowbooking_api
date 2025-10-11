@@ -81,3 +81,81 @@ router.post("/queue/book", async (req, res) => {
     });
   }
 });
+
+
+
+
+// select all data booking
+router.get("/bookings", async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        b.id,
+        b.farmer_id,
+        b.vet_expert_id,
+        b.bull_id,
+        b.schedule_id,
+        b.detailBull,
+        b.status,
+        b.vet_notes,
+        b.created_at,
+        b.updated_at,
+        f.name AS farmer_name,
+        v.name AS vet_name
+      FROM booking b
+      LEFT JOIN farmers f ON b.farmer_id = f.id
+      LEFT JOIN vet_experts v ON b.vet_expert_id = v.id
+      ORDER BY b.created_at DESC
+    `;
+
+    const results = await queryAsync(sql);
+    return res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching bookings:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// select only farmer data booking
+router.get("/bookings/farmer", async (req, res) => {
+  try {
+    const { farmer_id, vet_expert_id } = req.query;
+
+    let sql = `
+      SELECT 
+        b.id,
+        b.farmer_id,
+        b.vet_expert_id,
+        b.bull_id,
+        b.schedule_id,
+        b.detailBull,
+        b.status,
+        b.vet_notes,
+        b.created_at,
+        b.updated_at,
+        f.name AS farmer_name,
+        v.name AS vet_name
+      FROM booking b
+      LEFT JOIN farmers f ON b.farmer_id = f.id
+      LEFT JOIN vet_experts v ON b.vet_expert_id = v.id
+    `;
+
+    const params = [];
+    if (farmer_id) {
+      sql += " WHERE b.farmer_id = ?";
+      params.push(farmer_id);
+    } else if (vet_expert_id) {
+      sql += " WHERE b.vet_expert_id = ?";
+      params.push(vet_expert_id);
+    }
+
+    sql += " ORDER BY b.created_at DESC";
+
+    const results = await queryAsync(sql, params);
+    return res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching bookings:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});

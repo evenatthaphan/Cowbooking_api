@@ -196,20 +196,29 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
     const { booking_id } = req.params;
     const { status, vet_notes } = req.body;
 
+    // check status
     if (!status || !["accepted", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    const sql = `
-      UPDATE Queue_bookings
-      SET status = ?, vet_notes = ?, updated_at = NOW()
-      WHERE id = ?
-    `;
+    // use query and send vet_notes
+    const statusLower = (status as string).toLowerCase();
 
-    const result = await queryAsync(
-      "UPDATE Queue_bookings SET status = ? WHERE id = ?",
-      ["accepted", booking_id]
-    );
+    if (!["accepted", "rejected"].includes(statusLower)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const sql = `
+  UPDATE Queue_bookings
+  SET status = ?, vet_notes = ?, updated_at = NOW()
+  WHERE id = ?
+`;
+
+    const result = await queryAsync(sql, [
+      statusLower,
+      vet_notes || null,
+      booking_id,
+    ]);
 
     if ((result as any).affectedRows === 0) {
       return res.status(404).json({ error: "Booking not found" });
@@ -217,9 +226,15 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 
     return res
       .status(200)
-      .json({ message: "Booking status updated successfully" });
-  } catch (err) {
-    console.error("Error updating booking:", err);
-    return res.status(500).json({ error: "Internal server error" });
+      .json({ message: "Booking status and notes updated successfully" });
+  } catch (err: any) {
+    console.error(
+      "Error updating booking:",
+      err.sqlMessage || err.message || err
+    );
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err.sqlMessage || err.message,
+    });
   }
 });

@@ -199,45 +199,50 @@ router.post("/vet/schedule", async (req, res) => {
     const body: VetSchedulesPostRequest = req.body;
     const { vet_expert_id, available_date, available_time } = body;
 
-    // 
     if (!vet_expert_id || !available_date || !available_time) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // check vet_expert_id is existing on VetExperts 
-    const [experts]: any = await queryAsync(
+    // ตรวจสอบว่า available_time เป็น array หรือไม่
+    const times = Array.isArray(available_time)
+      ? available_time
+      : [available_time];
+
+    // ตรวจสอบว่า vet_expert_id มีอยู่จริงหรือไม่
+    const experts: any = await queryAsync(
       "SELECT id FROM VetExperts WHERE id = ?",
       [vet_expert_id]
     );
-
     if (experts.length === 0) {
       return res.status(404).json({ error: "Vet expert not found" });
     }
 
-    // ตรวจสอบว่ามีตารางเวลาเดียวกันอยู่แล้วหรือไม่
-    const [existing]: any = await queryAsync(
-      "SELECT * FROM vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
-      [vet_expert_id, available_date, available_time]
-    );
+    const insertedIds: number[] = [];
+    for (const time of times) {
+      // ตรวจสอบเวลาซ้ำ
+      const existing: any = await queryAsync(
+        "SELECT id FROM vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
+        [vet_expert_id, available_date, time]
+      );
 
-    if (existing.length > 0) {
-      return res.status(400).json({ error: "Schedule already exists" });
+      if (existing.length > 0) continue; // ข้ามเวลาที่มีอยู่แล้ว
+
+      const result: any = await queryAsync(
+        "INSERT INTO vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",
+        [vet_expert_id, available_date, time]
+      );
+      insertedIds.push(result.insertId);
     }
 
-    // เพิ่มข้อมูลใหม่
-    const sql = `
-      INSERT INTO vet_schedules (vet_expert_id, available_date, available_time, is_booked)
-      VALUES (?, ?, ?, false)
-    `;
-    const [result]: any = await queryAsync(sql, [
-      vet_expert_id,
-      available_date,
-      available_time,
-    ]);
+    if (insertedIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No new schedules added (all already exist)" });
+    }
 
     return res.status(201).json({
-      message: "Schedule added successfully",
-      schedule_id: result.insertId,
+      message: "Schedules added successfully",
+      schedule_ids: insertedIds,
     });
   } catch (err) {
     console.error("Error adding schedule:", err);

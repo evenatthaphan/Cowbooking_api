@@ -304,3 +304,33 @@ router.post("/vet/schedule", async (req, res) => {
 //     res.status(500).json({ error: 'Error uploading image and inserting user' });
 //   }
 // });
+
+
+router.get("/get/schedule/:id", async (req, res) => {
+  try {
+    const vetId = req.params.id;
+
+    if (!vetId) {
+      return res.status(400).json({ error: "vet_expert_id is required" });
+    }
+
+    const sql = `
+      SELECT id, vet_expert_id, available_date, available_time, is_booked, created_at
+      FROM Vet_schedules
+      WHERE vet_expert_id = ?
+      ORDER BY available_date, available_time
+    `;
+
+    conn.query(sql, [vetId], (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      res.json(results);
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server error" });
+  }
+});

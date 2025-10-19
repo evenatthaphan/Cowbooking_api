@@ -5,8 +5,9 @@ import { router as index } from "./api/index";
 import { router as farmers } from "./api/farmers";
 import { router as vetexpert } from "./api/VetExpert";
 import { router as usedtogether } from "./api/usedTogether";
-import { router as recaptcha } from "./api/recaptcha"
-import { router as queuebook} from "./api/Queue_bookings"
+import { router as recaptcha } from "./api/recaptcha";
+import { router as queuebook} from "./api/Queue_bookings";
+import { router as bull } from "./api/bull";
 import cors from "cors";
 
 // Object app => webApi
@@ -33,3 +34,4 @@ app.use("/vet", vetexpert);
 app.use("/together", usedtogether);
 app.use("/api", recaptcha);  ///**** */
 app.use("/queuebook", queuebook)
+app.use("/bull", bull)

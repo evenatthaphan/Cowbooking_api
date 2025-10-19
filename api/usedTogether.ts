@@ -98,12 +98,14 @@ router.post("/search", async (req, res) => {
       f.province,
       f.district,
       f.locality,
-      f.address
+      f.address,
+      bi.image1
     FROM BullSires b
     JOIN Farms f ON b.farm_id = f.id
+    LEFT JOIN BullImages bi ON b.id = bi.bull_id
     WHERE 1=1
   `;
-  let params = [];
+  let params: any[] = [];
   
   // search by keyword
   if (keyword && keyword.trim() !== "") {
@@ -111,7 +113,7 @@ router.post("/search", async (req, res) => {
     params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     console.log(" search keyword : ", keyword);
   } else {
-    console.log(" no search only used filter ")
+    console.log(" no search only used filter ");
   }
 
   // filter
@@ -131,17 +133,25 @@ router.post("/search", async (req, res) => {
   }
 
   try {
-    conn.query(sql, params, (err, results) => {
+    conn.query(sql, params, (err: any, results: any[]) => {
       if (err) {
         console.error("Search error:", err);
         return res.status(500).json({ error: "Database query failed" });
       }
-      res.json(results);
+      
+      // แปลงผลลัพธ์ให้มี images เป็น array
+      const resultsWithImages = results.map(r => ({
+        ...r,
+        images: r.image1 ? [r.image1] : [],
+      }));
+
+      res.json(resultsWithImages);
     });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 

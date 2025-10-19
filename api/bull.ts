@@ -28,10 +28,14 @@ router.get("/getbull", (req, res) => {
       f.district,
       f.locality,
       f.address,
-      bi.image_url  -- เพิ่มตรงนี้
+      bi.image1,
+      bi.image2,
+      bi.image3,
+      bi.image4,
+      bi.image5
     FROM BullSires bs
     JOIN Farms f ON bs.farm_id = f.id
-    LEFT JOIN BullImages bi ON bi.bull_id = bs.id  -- join กับตารางรูป
+    LEFT JOIN BullImages bi ON bi.bull_id = bs.id
     ORDER BY bs.Bullbreed, bs.Bullname
   `;
 
@@ -45,25 +49,24 @@ router.get("/getbull", (req, res) => {
       return res.status(404).json({ message: "No bulls found" });
     }
 
-    // 
+    // columm to array
     const groupedByBreed: Record<string, any[]> = {};
 
     result.forEach((bull) => {
       const breed = bull.Bullbreed || "Unknown Breed";
       if (!groupedByBreed[breed]) groupedByBreed[breed] = [];
 
-      // 
-      if (!bull.images) bull.images = [];
+      // array image
+      bull.images = [bull.image1, bull.image2, bull.image3, bull.image4, bull.image5]
+        .filter((url) => url); // url 
 
-      if (bull.image_url) bull.images.push(bull.image_url);
-
-      // 
       groupedByBreed[breed].push(bull);
     });
 
     res.json(groupedByBreed);
   });
 });
+
 
 
 

@@ -37,7 +37,6 @@ router.get("/getVetExperts/:id", (req, res) => {
     SELECT 
       v.*,
       SUM(vb.semen_stock) AS total_semen_stock
-      vb.price_per_dose
     FROM VetExperts v
     LEFT JOIN Vet_Bulls vb ON v.id = vb.vet_expert_id
     WHERE v.id = ?

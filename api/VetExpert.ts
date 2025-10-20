@@ -31,20 +31,32 @@ router.get("/getVetExperts", (req, res) => {
 
 // getVetExperts where id
 router.get("/getVetExperts/:id", (req, res) => {
-  const farmerId = req.params.id; // ดึงค่าที่ส่งมา
-  const sql = "SELECT * FROM VetExperts WHERE id = ?";
+  const vetId = req.params.id;
 
-  conn.query(sql, [farmerId], (err, result, fields) => {
+  const sql = `
+    SELECT 
+      v.*,
+      SUM(vb.semen_stock) AS total_semen_stock
+    FROM VetExperts v
+    LEFT JOIN Vet_Bulls vb ON v.id = vb.vet_id
+    WHERE v.id = ?
+    GROUP BY v.id
+  `;
+
+  conn.query(sql, [vetId], (err, result) => {
     if (err) {
       console.error("DB Query Error:", err);
       return res.status(500).json({ message: "Internal Server Error" });
     }
+
     if (!result || result.length === 0) {
-      return res.status(404).json({ message: "Farmer not found" });
+      return res.status(404).json({ message: "Vet not found" });
     }
-    res.json(result[0]); // ส่งแค่ตัวเดียว
+
+    res.json(result[0]);
   });
 });
+
 
 // post register *****
 router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {

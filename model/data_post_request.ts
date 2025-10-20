@@ -43,6 +43,8 @@ export interface VetBulls {
   id: number;
   vet_expert_id: number;
   bull_id: number;
+  price_per_dose: number;
+  semen_stock: number;
 }
 
 

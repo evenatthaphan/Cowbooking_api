@@ -1,14 +1,12 @@
 import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
-import { BullRow} from "../model/data_post_request";
-import { Bull} from "../model/data_post_request";
+import { BullRow } from "../model/data_post_request";
+import { Bull } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
 
-
 export const router = express.Router();
-
 
 // login for 3 type ****
 router.post("/login", async (req, res) => {
@@ -53,31 +51,36 @@ router.post("/login", async (req, res) => {
       // check Admins
       const adminSql =
         "SELECT * FROM Admins WHERE admin_name = ? OR phonenumber = ? OR admin_email = ?";
-      conn.query(adminSql, [loginId, loginId, loginId], async (err3, result3) => {
-        if (err3) return res.status(500).json({ error: err3.message });
+      conn.query(
+        adminSql,
+        [loginId, loginId, loginId],
+        async (err3, result3) => {
+          if (err3) return res.status(500).json({ error: err3.message });
 
-        if (result3.length > 0) {
-          const admin = result3[0];
-          const isMatch3 = await bcrypt.compare(password, admin.admin_password);
-          if (isMatch3) {
-            return res.json({
-              role: "admin",
-              message: "Login success",
-              user: admin,
-            });
-          } else {
-            return res.status(400).json({ error: "Not found this Admin" });
+          if (result3.length > 0) {
+            const admin = result3[0];
+            const isMatch3 = await bcrypt.compare(
+              password,
+              admin.admin_password
+            );
+            if (isMatch3) {
+              return res.json({
+                role: "admin",
+                message: "Login success",
+                user: admin,
+              });
+            } else {
+              return res.status(400).json({ error: "Not found this Admin" });
+            }
           }
-        }
 
-        // ถ้าไม่เจอในทั้งสาม table
-        return res.status(400).json({ error: "Invalid Users" });
-      });
+          // ถ้าไม่เจอในทั้งสาม table
+          return res.status(400).json({ error: "Invalid Users" });
+        }
+      );
     });
   });
 });
-
-
 
 // Search *****
 router.post("/search", async (req, res) => {
@@ -106,7 +109,7 @@ router.post("/search", async (req, res) => {
     WHERE 1=1
   `;
   let params: any[] = [];
-  
+
   // search by keyword
   if (keyword && keyword.trim() !== "") {
     sql += " AND (b.Bullname LIKE ? OR f.name LIKE ? OR b.Bullbreed LIKE ?)";
@@ -138,9 +141,9 @@ router.post("/search", async (req, res) => {
         console.error("Search error:", err);
         return res.status(500).json({ error: "Database query failed" });
       }
-      
+
       // แปลงผลลัพธ์ให้มี images เป็น array
-      const resultsWithImages = results.map(r => ({
+      const resultsWithImages = results.map((r) => ({
         ...r,
         images: r.image1 ? [r.image1] : [],
       }));
@@ -151,9 +154,6 @@ router.post("/search", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-
 
 // get bull data *****
 router.get("/bullData", async (req, res) => {
@@ -192,7 +192,7 @@ router.get("/bullData", async (req, res) => {
         return res.status(500).json({ error: "Database error" });
       }
 
-      const bullsMap: { [key: number]: Bull} = {};
+      const bullsMap: { [key: number]: Bull } = {};
 
       (result as BullRow[]).forEach((row: BullRow) => {
         if (!bullsMap[row.bull_id]) {
@@ -238,13 +238,11 @@ router.get("/bullData", async (req, res) => {
   }
 });
 
-
-
 router.get("/vet-by-bull/:bull_id", (req, res) => {
   const bullId = req.params.bull_id;
 
   const sql = `
-    SELECT v.id, v.VetExpert_name, v.VetExpert_email
+    SELECT v.id, v.VetExpert_name, v.VetExpert_email, v.phonenumber, v.profile_image, v.province, v.district, v.locality, v.VetExpert_address
     FROM VetExperts v
     JOIN Vet_Bulls vb ON v.id = vb.vet_expert_id
     WHERE vb.bull_id = ?

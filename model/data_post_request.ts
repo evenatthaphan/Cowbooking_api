@@ -37,7 +37,12 @@ export interface BullSiresPostRequest {
     price_per_dose: number;
     semen_stock: number;
     contest_records: string;
-    added_by: number;  //reference 
+}
+
+export interface VetBulls {
+  id: number;
+  vet_expert_id: number;
+  bull_id: number;
 }
 
 

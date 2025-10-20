@@ -237,3 +237,25 @@ router.get("/bullData", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+router.get("/vet-by-bull/:bull_id", (req, res) => {
+  const bullId = req.params.bull_id;
+
+  const sql = `
+    SELECT v.id, v.VetExpert_name, v.VetExpert_email
+    FROM VetExperts v
+    JOIN Vet_Bulls vb ON v.id = vb.vet_expert_id
+    WHERE vb.bull_id = ?
+  `;
+
+  conn.query(sql, [bullId], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Database query failed" });
+    }
+
+    res.json(results);
+  });
+});

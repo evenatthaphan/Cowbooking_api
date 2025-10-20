@@ -215,12 +215,12 @@ router.post("/vet/schedule", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // ตรวจสอบว่า available_time เป็น array หรือไม่
+    // check available_time is array ?
     const times = Array.isArray(available_time)
       ? available_time
       : [available_time];
 
-    // ตรวจสอบว่า vet_expert_id มีอยู่จริงหรือไม่
+    // check vet_expert_id is existed
     const experts: any = await queryAsync(
       "SELECT id FROM VetExperts WHERE id = ?",
       [vet_expert_id]
@@ -231,13 +231,13 @@ router.post("/vet/schedule", async (req, res) => {
 
     const insertedIds: number[] = [];
     for (const time of times) {
-      // ตรวจสอบเวลาซ้ำ
+      // check time 
       const existing: any = await queryAsync(
         "SELECT id FROM Vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
         [vet_expert_id, available_date, time]
       );
 
-      if (existing.length > 0) continue; // ข้ามเวลาที่มีอยู่แล้ว
+      if (existing.length > 0) continue; // 
 
       const result: any = await queryAsync(
         "INSERT INTO Vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",

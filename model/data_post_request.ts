@@ -92,6 +92,17 @@ export interface BullRow {
   image5: string | null;
 }
 
+export interface Bull_VET {
+  bull_id: number;
+  Bullname: string;
+  Bullbreed: string;
+  characteristics: string;
+  farm_id: number;
+  farm_name: string;
+  price_per_dose?: number;
+  semen_stock?: number;
+}
+
 export interface Bull {
   bull_id: number;
   Bullname: string;

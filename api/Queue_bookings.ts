@@ -9,7 +9,7 @@ export const router = express.Router();
 // queue_book ****
 router.post("/queue/book", async (req, res) => {
   try {
-    const { farmer_id, vet_expert_id, bull_id, schedule_id, detailBull } =
+    const { farmer_id, vet_expert_id, bull_id, dose, schedule_id, detailBull } =
       req.body;
 
     // check important fild
@@ -41,8 +41,8 @@ router.post("/queue/book", async (req, res) => {
     // insert queue
     const sqlInsert = `
       INSERT INTO Queue_bookings
-      (farmer_id, vet_expert_id, bull_id, schedule_id, detailBull, status, vet_notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (farmer_id, vet_expert_id, bull_id, schedule_id, dose, detailBull, status, vet_notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const result: any = await queryAsync(sqlInsert, [
@@ -50,6 +50,7 @@ router.post("/queue/book", async (req, res) => {
       vet_expert_id,
       bull_id || null,
       schedule_id,
+      dose || null,
       detailBull || null,
       status,
       vet_notes,

@@ -71,14 +71,15 @@ router.get("/getby_vetid/:vet_id", (req, res) => {
 
   const sql = `
     SELECT 
-      bs.id AS bull_id,
+      bs.id AS bullseries_id,
       bs.Bullname,
       bs.Bullbreed,
       bs.characteristics,
       f.id AS farm_id,
       f.name AS farm_name,
       vb.price_per_dose,
-      vb.semen_stock
+      vb.semen_stock,
+      vb.id as bullvet_id
     FROM Vet_Bulls vb
     JOIN BullSires bs ON vb.bull_id = bs.id
     JOIN Farms f ON bs.farm_id = f.id

@@ -79,7 +79,7 @@ router.get("/getby_vetid/:vet_id", (req, res) => {
       f.name AS farm_name,
       vb.id as vet_bull_id,
       vb.price_per_dose,
-      vb.semen_stock,
+      vb.semen_stock
     FROM Vet_Bulls vb
     JOIN BullSires bs ON vb.bull_id = bs.id
     JOIN Farms f ON bs.farm_id = f.id

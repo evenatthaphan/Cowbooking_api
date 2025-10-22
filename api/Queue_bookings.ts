@@ -167,8 +167,10 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
         f.farm_name AS farmer_name,
         b.vet_expert_id,
         v.VetExpert_name AS vet_name,
-        b.bull_id,
-        b.schedule_id,
+        b.bull_id AS vet_bull_id,
+        bs.Bullname AS bullname,
+        bs.Bullbreed AS bullbreed,
+        b.dose AS dose,
         s.available_date AS schedule_date,
         s.available_time AS schedule_time,
         b.detailBull,
@@ -179,6 +181,8 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
       LEFT JOIN Farmers f ON b.farmer_id = f.id
       LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
       LEFT JOIN Vet_schedules s ON b.schedule_id = s.id
+      LEFT JOIN Vet_Bulls vb ON b.bull_id = vb.id
+      LEFT JOIN BullSires bs ON vb.bull_id = bs.id
       WHERE b.vet_expert_id = ?
       ORDER BY b.created_at DESC
     `;
@@ -190,6 +194,8 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
 
 // vetexpert update status booking ****
 router.put("/bookings/update/:booking_id", async (req, res) => {

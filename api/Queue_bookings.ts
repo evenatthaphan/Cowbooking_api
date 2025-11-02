@@ -245,3 +245,44 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
     });
   }
 });
+
+
+
+// cancel booking ***
+router.delete("/queue/cancel/:booking_id", async (req, res) => {
+  try {
+    const { booking_id } = req.params;
+
+    if (!booking_id) {
+      return res.status(400).json({ error: "Missing booking_id" });
+    }
+
+    // check booking is existed
+    const booking: any = await queryAsync(
+      "SELECT schedule_id FROM Queue_bookings WHERE id = ?",
+      [booking_id]
+    );
+
+    if (booking.length === 0) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    const schedule_id = booking[0].schedule_id;
+
+    // deleted booking
+    await queryAsync("DELETE FROM Queue_bookings WHERE id = ?", [booking_id]);
+
+    // update status schedule 
+    await queryAsync("UPDATE Vet_schedules SET is_booked = false WHERE id = ?", [
+      schedule_id,
+    ]);
+
+    return res.status(200).json({ message: "Booking cancelled successfully" });
+  } catch (err: any) {
+    console.error("Error cancelling booking:", err.sqlMessage || err.message || err);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err.sqlMessage || err.message,
+    });
+  }
+});

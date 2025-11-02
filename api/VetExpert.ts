@@ -162,9 +162,9 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     console.log("req.body:", req.body);
     const VetExperts = req.body;
 
-    if (!VetExperts.recaptchaToken) {
-      return res.status(400).json({ error: "reCAPTCHA token is required" });
-    }
+    // if (!VetExperts.recaptchaToken) {
+    //   return res.status(400).json({ error: "reCAPTCHA token is required" });
+    // }
 
     const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
     const response = await axios.post(verifyUrl);

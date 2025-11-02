@@ -8,6 +8,9 @@ import multer from "multer";
 import cloudinary from "../src/config/cloudinary";
 import { promises as fs } from "fs";
 import axios from "axios";
+import { db } from "../firebaseconnect";
+import { v4 as uuidv4 } from "uuid";
+
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
@@ -59,98 +62,164 @@ router.get("/getVetExperts/:id", (req, res) => {
 
 
 // post register *****
+// router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
+//   try {
+//     console.log("req.body:", req.body);
+
+//     let VetExperts = req.body;
+
+//     if (!VetExperts.recaptchaToken) {
+//       return res.status(400).json({ error: "reCAPTCHA token is required" });
+//     }
+
+//     try {
+//       // ตรวจสอบกับ Google reCAPTCHA API
+//       const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
+//       const response = await axios.post(verifyUrl);
+
+//       if (!response.data.success) {
+//         return res.status(400).json({ error: "Failed reCAPTCHA verification" });
+//       }
+//     } catch (err) {
+//       console.error("reCAPTCHA verification failed:", err);
+//       return res.status(500).json({ error: "reCAPTCHA verification failed" });
+//     }
+
+//     if (!VetExperts.VetExpert_name) {
+//       return res.status(400).json({ error: "VetExpert_name is required" });
+//     }
+//     if (!VetExperts.phonenumber) {
+//       return res.status(400).json({ error: "phonenumber is required" });
+//     }
+//     if (!VetExperts.VetExpert_password) {
+//       return res.status(400).json({ error: "VetExpert_password is required" });
+//     }
+//     if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
+//       return res.status(400).json({
+//         error: "province, district and locality are required",
+//       });
+//     }
+
+//     // upload to Cloudinary
+//     let uploadResult = null;
+//     if (req.file) {
+//       uploadResult = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "vet_experts", // floder Cloudinary
+//       });
+
+//       //
+//       await fs.unlink(req.file.path);
+//     }
+
+//     //Hash  Password
+//     const saltRounds = 10;
+//     const hashedPassword = await bcrypt.hash(
+//       VetExperts.VetExpert_password,
+//       saltRounds
+//     );
+
+//     const sql = `
+//       INSERT INTO VetExperts 
+//         (VetExpert_name, VetExpert_password, phonenumber, VetExpert_email, profile_image, province, district, locality, VetExpert_address, VetExpert_PL)
+//       VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?, ?)
+//     `;
+
+//     conn.query(
+//       sql,
+//       [
+//         VetExperts.VetExpert_name,
+//         hashedPassword,
+//         VetExperts.phonenumber,
+//         VetExperts.VetExpert_email,
+//         VetExperts.province,
+//         VetExperts.district,
+//         VetExperts.locality,
+//         VetExperts.VetExpert_address,
+//         uploadResult ? uploadResult.secure_url : null, // เก็บ URL ไฟล์ Cloudinary
+//       ],
+//       (err, result) => {
+//         if (err) {
+//           console.error("Error inserting VetExpert:", err);
+//           res.status(500).json({ error: "Error inserting VetExpert" });
+//         } else {
+//           res.status(201).json({
+//             affected_row: result.affectedRows,
+//             cloudinary_url: uploadResult ? uploadResult.secure_url : null,
+//           });
+//         }
+//       }
+//     );
+//   } catch (err) {
+//     console.error("Error in /register:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+
+
 router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
   try {
     console.log("req.body:", req.body);
-
-    let VetExperts = req.body;
+    const VetExperts = req.body;
 
     if (!VetExperts.recaptchaToken) {
       return res.status(400).json({ error: "reCAPTCHA token is required" });
     }
 
-    try {
-      // ตรวจสอบกับ Google reCAPTCHA API
-      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
-      const response = await axios.post(verifyUrl);
-
-      if (!response.data.success) {
-        return res.status(400).json({ error: "Failed reCAPTCHA verification" });
-      }
-    } catch (err) {
-      console.error("reCAPTCHA verification failed:", err);
-      return res.status(500).json({ error: "reCAPTCHA verification failed" });
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
+    const response = await axios.post(verifyUrl);
+    if (!response.data.success) {
+      return res.status(400).json({ error: "Failed reCAPTCHA verification" });
     }
 
-    if (!VetExperts.VetExpert_name) {
-      return res.status(400).json({ error: "VetExpert_name is required" });
+
+    if (!VetExperts.VetExpert_name || !VetExperts.VetExpert_password || !VetExperts.phonenumber) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
-    if (!VetExperts.phonenumber) {
-      return res.status(400).json({ error: "phonenumber is required" });
-    }
-    if (!VetExperts.VetExpert_password) {
-      return res.status(400).json({ error: "VetExpert_password is required" });
-    }
+
     if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
-      return res.status(400).json({
-        error: "province, district and locality are required",
-      });
+      return res.status(400).json({ error: "Address fields are required" });
     }
 
-    // upload to Cloudinary
     let uploadResult = null;
     if (req.file) {
       uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: "vet_experts", // floder Cloudinary
+        folder: "vet_experts",
       });
-
-      //
-      await fs.unlink(req.file.path);
+      await fs.unlink(req.file.path); // ลบไฟล์ local หลังอัปโหลด
     }
 
-    //Hash  Password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(
-      VetExperts.VetExpert_password,
-      saltRounds
-    );
+    const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
 
-    const sql = `
-      INSERT INTO VetExperts 
-        (VetExpert_name, VetExpert_password, phonenumber, VetExpert_email, profile_image, province, district, locality, VetExpert_address, VetExpert_PL)
-      VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?, ?)
-    `;
+    const pendingId = uuidv4();
 
-    conn.query(
-      sql,
-      [
-        VetExperts.VetExpert_name,
-        hashedPassword,
-        VetExperts.phonenumber,
-        VetExperts.VetExpert_email,
-        VetExperts.province,
-        VetExperts.district,
-        VetExperts.locality,
-        VetExperts.VetExpert_address,
-        uploadResult ? uploadResult.secure_url : null, // เก็บ URL ไฟล์ Cloudinary
-      ],
-      (err, result) => {
-        if (err) {
-          console.error("Error inserting VetExpert:", err);
-          res.status(500).json({ error: "Error inserting VetExpert" });
-        } else {
-          res.status(201).json({
-            affected_row: result.affectedRows,
-            cloudinary_url: uploadResult ? uploadResult.secure_url : null,
-          });
-        }
-      }
-    );
+    await db.ref(`pending_vet_experts/${pendingId}`).set({
+      VetExpert_name: VetExperts.VetExpert_name,
+      VetExpert_password: hashedPassword,
+      phonenumber: VetExperts.phonenumber,
+      VetExpert_email: VetExperts.VetExpert_email || "",
+      VetExpert_address: VetExperts.VetExpert_address || "",
+      province: VetExperts.province,
+      district: VetExperts.district,
+      locality: VetExperts.locality,
+      VetExpert_PL: uploadResult ? uploadResult.secure_url : null,
+      profile_image: "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
+      created_at: new Date().toISOString(),
+      status: "pending", // รอการอนุมัติ
+    });
+
+    res.status(201).json({
+      message: "Registration submitted for admin approval",
+      pendingId,
+    });
   } catch (err) {
     console.error("Error in /register:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {

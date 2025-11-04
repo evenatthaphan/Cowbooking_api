@@ -11,7 +11,6 @@ import axios from "axios";
 import { db } from "../firebaseconnect";
 import { v4 as uuidv4 } from "uuid";
 
-
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";
 const upload = multer({ dest: "uploads/" });
@@ -60,25 +59,18 @@ router.get("/getVetExperts/:id", (req, res) => {
   });
 });
 
-
 // post register *****
 router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
   try {
     console.log("req.body:", req.body);
     const VetExperts = req.body;
 
-    // if (!VetExperts.recaptchaToken) {
-    //   return res.status(400).json({ error: "reCAPTCHA token is required" });
-    // }
-
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${VetExperts.recaptchaToken}`;
-    const response = await axios.post(verifyUrl);
-    if (!response.data.success) {
-      return res.status(400).json({ error: "Failed reCAPTCHA verification" });
-    }
-
-
-    if (!VetExperts.VetExpert_name || !VetExperts.VetExpert_password || !VetExperts.phonenumber) {
+    // check filds
+    if (
+      !VetExperts.VetExpert_name ||
+      !VetExperts.VetExpert_password ||
+      !VetExperts.phonenumber
+    ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -86,16 +78,16 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       return res.status(400).json({ error: "Address fields are required" });
     }
 
+    // upload VetExpert_PL
     let uploadResult = null;
     if (req.file) {
       uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "vet_experts",
       });
-      await fs.unlink(req.file.path); // ลบไฟล์ local หลังอัปโหลด
+      await fs.unlink(req.file.path); // 
     }
 
     const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
-
     const pendingId = uuidv4();
 
     await db.ref(`pending_vet_experts/${pendingId}`).set({
@@ -108,7 +100,8 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       district: VetExperts.district,
       locality: VetExperts.locality,
       VetExpert_PL: uploadResult ? uploadResult.secure_url : null,
-      profile_image: "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
+      profile_image:
+        "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
       created_at: new Date().toISOString(),
       status: "pending", // รอการอนุมัติ
     });
@@ -122,9 +115,6 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
-
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {
@@ -205,13 +195,13 @@ router.post("/vet/schedule", async (req, res) => {
 
     const insertedIds: number[] = [];
     for (const time of times) {
-      // check time 
+      // check time
       const existing: any = await queryAsync(
         "SELECT id FROM Vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
         [vet_expert_id, available_date, time]
       );
 
-      if (existing.length > 0) continue; // 
+      if (existing.length > 0) continue; //
 
       const result: any = await queryAsync(
         "INSERT INTO Vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",
@@ -290,7 +280,6 @@ router.post("/vet/schedule", async (req, res) => {
 //     res.status(500).json({ error: 'Error uploading image and inserting user' });
 //   }
 // });
-
 
 router.get("/get/schedule/:id", async (req, res) => {
   try {

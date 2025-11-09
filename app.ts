@@ -8,6 +8,7 @@ import { router as usedtogether } from "./api/usedTogether";
 import { router as recaptcha } from "./api/recaptcha";
 import { router as queuebook} from "./api/Queue_bookings";
 import { router as bull } from "./api/bull";
+import { router as admin } from "./api/admin"
 import cors from "cors";
 
 // Object app => webApi
@@ -35,3 +36,4 @@ app.use("/together", usedtogether);
 app.use("/api", recaptcha);  ///**** */
 app.use("/queuebook", queuebook)
 app.use("/bull", bull)
+app.use("/admin", admin)

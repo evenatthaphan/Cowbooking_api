@@ -9,7 +9,7 @@ import { db } from "../firebaseconnect";
 
 
 //export const router = express.Router();
-const router = Router();
+export const router = Router();
 
 
 // select form register vet from firebase ****

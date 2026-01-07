@@ -80,77 +80,108 @@ router.post("/register", async (req: Request, res: Response) => {
       .json({ error: "province, district and locality are required" });
   }
 
-  // เช็คเบอร์ซ้ำ
-  const checkSql =
-    "SELECT * FROM Farmers WHERE phonenumber = ? OR farmer_email = ?";
-  conn.query(
-    checkSql,
-    [Farmer.phonenumber, Farmer.farmer_email],
-    async (err, rows) => {
-      if (err) {
-        console.error("Error checking phonenumber and email:", err);
-        return res
-          .status(500)
-          .json({ error: "Error checking phonenumber and email" });
-      }
+  // เช็คชื่อซ้ำ
+  const checkFarmNameSql =
+    "SELECT id FROM Farmers WHERE farm_name = ?";
 
-      if (rows.length > 0) {
-        const existing = rows[0];
-        if (existing.phonenumber === Farmer.phonenumber) {
-          return res.status(400).json({ error: "Phonenumber already exists" });
-        }
-        if (existing.farmer_email === Farmer.farmer_email) {
-          return res.status(400).json({ error: "Email already exists" });
-        }
-      }
-
-      try {
-        // hash password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(
-          Farmer.farm_password,
-          saltRounds
-        );
-
-        // insert
-        const sql = `
-        INSERT INTO Farmers 
-          (farm_name, farm_password, password, phonenumber, farmer_email, profile_image, farm_address, province, district, locality)
-        VALUES (?, ?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?)
-      `;
-
-        conn.query(
-          sql,
-          [
-            Farmer.farm_name,
-            hashedPassword,
-            Farmer.farm_password,
-            Farmer.phonenumber,
-            Farmer.farmer_email,
-            Farmer.farm_address,
-            Farmer.province,
-            Farmer.district,
-            Farmer.locality,
-          ],
-          (err, result) => {
-            if (err) {
-              console.error("Error inserting Farmer:", err);
-              res.status(500).json({ error: "Error inserting Farmer" });
-            } else {
-              res.status(201).json({
-                message: "Farmer registered successfully",
-                farmerId: result.insertId,
-              });
-            }
-          }
-        );
-      } catch (hashErr) {
-        console.error("Error hashing password:", hashErr);
-        return res.status(500).json({ error: "Error hashing password" });
-      }
+  conn.query(checkFarmNameSql, [Farmer.farm_name], (err, rows) => {
+    if (err) {
+      console.error("Error checking farm_name:", err);
+      return res.status(500).json({ error: "Error checking farm_name" });
     }
-  );
+
+    if (rows.length > 0) {
+      return res.status(400).json({ error: "Farm name already exists" });
+    }
+
+    //เช็คเบอร์ + email ซ้ำ 
+    const checkSql =
+      "SELECT * FROM Farmers WHERE phonenumber = ? OR farmer_email = ?";
+
+    conn.query(
+      checkSql,
+      [Farmer.phonenumber, Farmer.farmer_email],
+      async (err, rows) => {
+        if (err) {
+          console.error("Error checking phonenumber and email:", err);
+          return res
+            .status(500)
+            .json({ error: "Error checking phonenumber and email" });
+        }
+
+        if (rows.length > 0) {
+          const existing = rows[0];
+          if (existing.phonenumber === Farmer.phonenumber) {
+            return res.status(400).json({ error: "Phonenumber already exists" });
+          }
+          if (existing.farmer_email === Farmer.farmer_email) {
+            return res.status(400).json({ error: "Email already exists" });
+          }
+        }
+
+        try {
+          // hash password
+          const saltRounds = 10;
+          const hashedPassword = await bcrypt.hash(
+            Farmer.farm_password,
+            saltRounds
+          );
+
+          // insert
+          const sql = `
+            INSERT INTO Farmers 
+              (
+                farm_name,
+                farm_password,
+                password,
+                phonenumber,
+                farmer_email,
+                profile_image,
+                farm_address,
+                province,
+                district,
+                locality
+              )
+            VALUES (?, ?, ?, ?, ?, 
+              'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',
+              ?, ?, ?, ?
+            )
+          `;
+
+          conn.query(
+            sql,
+            [
+              Farmer.farm_name,
+              hashedPassword,          // hash
+              Farmer.farm_password,    // plain
+              Farmer.phonenumber,
+              Farmer.farmer_email,
+              Farmer.farm_address,
+              Farmer.province,
+              Farmer.district,
+              Farmer.locality,
+            ],
+            (err, result) => {
+              if (err) {
+                console.error("Error inserting Farmer:", err);
+                res.status(500).json({ error: "Error inserting Farmer" });
+              } else {
+                res.status(201).json({
+                  message: "Farmer registered successfully",
+                  farmerId: result.insertId,
+                });
+              }
+            }
+          );
+        } catch (hashErr) {
+          console.error("Error hashing password:", hashErr);
+          return res.status(500).json({ error: "Error hashing password" });
+        }
+      }
+    );
+  });
 });
+
 
 
 

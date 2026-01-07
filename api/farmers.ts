@@ -115,8 +115,8 @@ router.post("/register", async (req: Request, res: Response) => {
         // insert
         const sql = `
         INSERT INTO Farmers 
-          (farm_name, farm_password, phonenumber, farmer_email, profile_image, farm_address, province, district, locality)
-        VALUES (?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?)
+          (farm_name, farm_password, password, phonenumber, farmer_email, profile_image, farm_address, province, district, locality)
+        VALUES (?, ?, ?, ?, ?, 'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg', ?, ?, ?, ?)
       `;
 
         conn.query(
@@ -124,6 +124,7 @@ router.post("/register", async (req: Request, res: Response) => {
           [
             Farmer.farm_name,
             hashedPassword,
+            Farmer.farm_password,
             Farmer.phonenumber,
             Farmer.farmer_email,
             Farmer.farm_address,

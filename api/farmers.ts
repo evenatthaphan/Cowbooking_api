@@ -91,7 +91,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     if (rows.length > 0) {
-      return res.status(400).json({ error: "Farm name already exists" });
+      return res.status(400).json({ error: "ชื่อนี้มีในระบบแล้ว กรุณาใช้ชื่ออื่น" });
     }
 
     //เช็คเบอร์ + email ซ้ำ 
@@ -112,10 +112,10 @@ router.post("/register", async (req: Request, res: Response) => {
         if (rows.length > 0) {
           const existing = rows[0];
           if (existing.phonenumber === Farmer.phonenumber) {
-            return res.status(400).json({ error: "Phonenumber already exists" });
+            return res.status(400).json({ error: "เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาใช้เบอร์อื่น" });
           }
           if (existing.farmer_email === Farmer.farmer_email) {
-            return res.status(400).json({ error: "Email already exists" });
+            return res.status(400).json({ error: "อีเมลล์นี้มีในระบบแล้ว กรุณาใช้อีเมลล์อื่น" });
           }
         }
 

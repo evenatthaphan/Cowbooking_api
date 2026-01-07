@@ -79,3 +79,38 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "internal error" });
   }
 });
+
+
+// Cleanup used captchas older than 1 day
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+export async function cleanupUsedCaptchas() {
+  try {
+    const snapshot = await db.ref("captchas").once("value");
+    if (!snapshot.exists()) return;
+
+    const now = Date.now();
+    const captchas = snapshot.val();
+
+    const updates: Record<string, null> = {};
+
+    for (const id in captchas) {
+      const c = captchas[id];
+      if (
+        c.used === true &&
+        c.createdAt &&
+        now - c.createdAt > ONE_DAY_MS
+      ) {
+        updates[`captchas/${id}`] = null; // ลบ node
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.ref().update(updates);
+      console.log("✅ Cleaned up used captchas:", Object.keys(updates).length);
+    }
+  } catch (err) {
+    console.error("❌ Captcha cleanup error:", err);
+  }
+}
+

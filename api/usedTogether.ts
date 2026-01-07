@@ -16,41 +16,49 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "loginId and password are required" });
   }
 
-  // check Farmers
+  //  Farmers 
   const farmerSql =
     "SELECT * FROM Farmers WHERE farm_name = ? OR phonenumber = ? OR farmer_email = ?";
+
   conn.query(farmerSql, [loginId, loginId, loginId], async (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (result.length > 0) {
       const user = result[0];
       const isMatch = await bcrypt.compare(password, user.farm_password);
-      if (isMatch) {
-        return res.json({ role: "farmer", message: "Login success", user });
-      } else {
-        return res.status(400).json({ error: "Not found this Farmer" });
+
+      if (!isMatch) {
+        return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
       }
+
+      return res.json({ role: "farmer", message: "เข้าสู่ระบบสำเร็จ", user });
     }
 
-    // check VetExperts
+    // VetExperts 
     const vetSql =
       "SELECT * FROM VetExperts WHERE VetExpert_name = ? OR phonenumber = ? OR VetExpert_email = ?";
+
     conn.query(vetSql, [loginId, loginId, loginId], async (err2, result2) => {
       if (err2) return res.status(500).json({ error: err2.message });
 
       if (result2.length > 0) {
         const vet = result2[0];
-        const isMatch2 = await bcrypt.compare(password, vet.VetExpert_password);
-        if (isMatch2) {
-          return res.json({ role: "vet", message: "Login success", user: vet });
-        } else {
-          return res.status(400).json({ error: "Not found this VetExpert" });
+        const isMatch2 = await bcrypt.compare(
+          password,
+          vet.VetExpert_password
+        );
+
+        if (!isMatch2) {
+          return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
         }
+
+        return res.json({ role: "vet", message: "เข้าสู่ระบบสำเร็จ", user: vet });
       }
 
-      // check Admins
+      //  Admins 
       const adminSql =
         "SELECT * FROM Admins WHERE admin_name = ? OR phonenumber = ? OR admin_email = ?";
+
       conn.query(
         adminSql,
         [loginId, loginId, loginId],
@@ -63,24 +71,28 @@ router.post("/login", async (req, res) => {
               password,
               admin.admin_password
             );
-            if (isMatch3) {
-              return res.json({
-                role: "admin",
-                message: "Login success",
-                user: admin,
-              });
-            } else {
-              return res.status(400).json({ error: "Not found this Admin" });
+
+            if (!isMatch3) {
+              return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
             }
+
+            return res.json({
+              role: "admin",
+              message: "เข้าสู่ระบบสำเร็จ",
+              user: admin,
+            });
           }
 
-          // ถ้าไม่เจอในทั้งสาม table
-          return res.status(400).json({ error: "Invalid Users" });
+          // ไม่พบผู้ใช้ในทุก table
+          return res
+            .status(400)
+            .json({ error: "Invalid username or password" });
         }
       );
     });
   });
 });
+
 
 // Search *****
 router.post("/search", async (req, res) => {

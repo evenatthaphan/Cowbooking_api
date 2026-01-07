@@ -1,5 +1,6 @@
 import http from "http";
 import { app } from "./app";
+import { cleanupUsedCaptchas } from "./api/recaptcha";
 
 const port = process.env.PORT || 3000;
 
@@ -9,3 +10,6 @@ const server = http.createServer(app);
 server.listen(port, () => {
     console.log(`Server is Started on port ${port}`);
 });
+
+// cleanup ทุก 1 ชั่วโมง
+setInterval(cleanupUsedCaptchas, 60 * 60 * 1000);

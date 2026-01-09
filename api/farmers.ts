@@ -249,7 +249,7 @@ router.put("/changepass/:id", async (req, res) => {
   }
 
   try {
-    // หา farmer ตาม id
+    // หา farmer
     let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
     let result = (await queryAsync(sql)) as FarmerPostRequest[];
 
@@ -258,38 +258,97 @@ router.put("/changepass/:id", async (req, res) => {
     }
 
     const farmerOriginal = result[0];
-    console.log("old_password from request:", old_password);
-    console.log("stored hash from DB:", farmerOriginal.farm_password);
 
-    // compare oldpass
+    // compare old password
     const isMatch = await bcrypt.compare(
       old_password,
       farmerOriginal.farm_password
     );
-    console.log("isMatch result:", isMatch);
 
     if (!isMatch) {
       return res.status(400).json({ error: "Old password is incorrect" });
     }
 
-    // hash
+    // hash new password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(new_password, saltRounds);
 
-    // update
-    const updateSql = "UPDATE Farmers SET farm_password = ? WHERE id = ?";
-    conn.query(updateSql, [hashedPassword, id], (err) => {
+    // update BOTH hashed + plain
+    const updateSql = `
+      UPDATE Farmers 
+      SET farm_password = ?, password = ? 
+      WHERE id = ?
+    `;
+
+    conn.query(updateSql, [hashedPassword, new_password, id], (err) => {
       if (err) {
         console.error("Error updating password:", err);
         return res.status(500).json({ error: "Error updating password" });
       }
-      res.json({ message: "Password updated successfully" });
+
+      res.json({
+        message: "Password updated successfully",
+      });
     });
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+// router.put("/changepass/:id", async (req, res) => {
+//   const id = +req.params.id;
+//   const { old_password, new_password } = req.body;
+
+//   if (!old_password || !new_password) {
+//     return res
+//       .status(400)
+//       .json({ error: "old_password and new_password are required" });
+//   }
+
+//   try {
+//     // หา farmer ตาม id
+//     let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
+//     let result = (await queryAsync(sql)) as FarmerPostRequest[];
+
+//     if (!result || result.length === 0) {
+//       return res.status(404).json({ error: "Farmer not found" });
+//     }
+
+//     const farmerOriginal = result[0];
+//     console.log("old_password from request:", old_password);
+//     console.log("stored hash from DB:", farmerOriginal.farm_password);
+
+//     // compare oldpass
+//     const isMatch = await bcrypt.compare(
+//       old_password,
+//       farmerOriginal.farm_password
+//     );
+//     console.log("isMatch result:", isMatch);
+
+//     if (!isMatch) {
+//       return res.status(400).json({ error: "Old password is incorrect" });
+//     }
+
+//     // hash
+//     const saltRounds = 10;
+//     const hashedPassword = await bcrypt.hash(new_password, saltRounds);
+
+//     // update
+//     const updateSql = "UPDATE Farmers SET farm_password = ?, password = ? WHERE id = ?";
+//     conn.query(updateSql, [hashedPassword, id], (err) => {
+//       if (err) {
+//         console.error("Error updating password:", err);
+//         return res.status(500).json({ error: "Error updating password" });
+//       }
+//       res.json({ message: "Password updated successfully" });
+//     });
+//   } catch (error) {
+//     console.error("Change password error:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 // forget password
 // router.post("/forget-pass", async (req, res) => {

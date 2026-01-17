@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import crypto from "crypto";
 import { conn, queryAsync } from "../dbconnect";
-import { db } from "../firebaseconnect";
 
 export const router = express.Router();
 
@@ -15,27 +14,29 @@ function generateCaptcha(len = 6) {
   return s;
 }
 
-// create new captcha 
+// create new captcha
 router.get("/captcha", async (req: Request, res: Response) => {
   try {
     const code = generateCaptcha(6);
     const captchaId = crypto.randomBytes(8).toString("hex");
-    const expiresAt = Date.now() + 5 * 60 * 1000; // หมดอายุ 5 นาที
-    const createdAt = Date.now();
+    const createdAt = new Date();
 
-    // push into Firebase Realtime Database
-    await db.ref("captchas/" + captchaId).set({
-      id: captchaId,
-      text: code,
-      expiresAt,
-      used: false,
+    const sql = `
+      INSERT INTO tb_recaptcha
+      (recaptcha_id, credate_at, recaptcha_text)
+      VALUES (?, ?, ?)
+    `;
+
+    await queryAsync(sql, [
+      captchaId,
       createdAt,
-    });
+      code,
+    ]);
 
     res.status(201).json({
       message: "Captcha generated successfully",
       captchaId,
-      captcha: code,
+      captcha: code, 
     });
   } catch (err) {
     console.error("Captcha create error:", err);
@@ -43,35 +44,73 @@ router.get("/captcha", async (req: Request, res: Response) => {
   }
 });
 
+// router.get("/captcha", async (req: Request, res: Response) => {
+//   try {
+//     const code = generateCaptcha(6);
+//     const captchaId = crypto.randomBytes(8).toString("hex");
+//     const expiresAt = Date.now() + 5 * 60 * 1000; // หมดอายุ 5 นาที
+//     const createdAt = Date.now();
+
+//     // push into Firebase Realtime Database
+//     await db.ref("captchas/" + captchaId).set({
+//       id: captchaId,
+//       text: code,
+//       expiresAt,
+//       used: false,
+//       createdAt,
+//     });
+
+//     res.status(201).json({
+//       message: "Captcha generated successfully",
+//       captchaId,
+//       captcha: code,
+//     });
+//   } catch (err) {
+//     console.error("Captcha create error:", err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
 // check captcha
 router.post("/captcha/verify", async (req: Request, res: Response) => {
   try {
     const { captchaId, answer } = req.body;
+
     if (!captchaId || !answer) {
       return res.status(400).json({ success: false, message: "invalid input" });
     }
 
-    const snapshot = await db.ref("captchas/" + captchaId).once("value");
-    if (!snapshot.exists()) {
+    const sql = `
+      SELECT recaptcha_text, credate_at
+      FROM tb_recaptcha
+      WHERE recaptcha_id = ?
+    `;
+
+    const [rows]: any = await queryAsync(sql, [captchaId]);
+
+    if (rows.length === 0) {
       return res.status(400).json({ success: false, message: "not found" });
     }
 
-    const captcha = snapshot.val();
+    const captcha = rows[0];
 
-    if (captcha.used) {
-      return res.status(400).json({ success: false, message: "already used" });
-    }
+    // หมดอายุ 5 นาที
+    const EXPIRE_MS = 5 * 60 * 1000;
+    const createdAt = new Date(captcha.credate_at).getTime();
 
-    if (Date.now() > captcha.expiresAt) {
+    if (Date.now() - createdAt > EXPIRE_MS) {
       return res.status(400).json({ success: false, message: "expired" });
     }
 
-    if (captcha.text !== answer) {
+    if (captcha.recaptcha_text !== answer) {
       return res.status(400).json({ success: false, message: "wrong" });
     }
 
-    // update Captchas is used
-    await db.ref("captchas/" + captchaId).update({ used: true });
+    // ลบทิ้งหลังใช้ (แทน used=true)
+    await queryAsync(
+      `DELETE FROM tb_recaptcha WHERE recaptcha_id = ?`,
+      [captchaId]
+    );
 
     return res.json({ success: true, message: "ok" });
   } catch (err) {
@@ -80,37 +119,21 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
   }
 });
 
-
-// Cleanup used captchas older than 1 day
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function cleanupUsedCaptchas() {
+export async function cleanupCaptchas() {
   try {
-    const snapshot = await db.ref("captchas").once("value");
-    if (!snapshot.exists()) return;
+    await queryAsync(
+      `
+      DELETE FROM tb_recaptcha
+      WHERE credate_at < (NOW() - INTERVAL 1 DAY)
+      `
+    );
 
-    const now = Date.now();
-    const captchas = snapshot.val();
-
-    const updates: Record<string, null> = {};
-
-    for (const id in captchas) {
-      const c = captchas[id];
-      if (
-        c.used === true &&
-        c.createdAt &&
-        now - c.createdAt > ONE_DAY_MS
-      ) {
-        updates[`captchas/${id}`] = null; // ลบ node
-      }
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await db.ref().update(updates);
-      console.log("✅ Cleaned up used captchas:", Object.keys(updates).length);
-    }
+    console.log("Cleaned up old captchas");
   } catch (err) {
-    console.error("❌ Captcha cleanup error:", err);
+    console.error("Captcha cleanup error:", err);
   }
 }
+
 

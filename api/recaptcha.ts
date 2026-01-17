@@ -121,7 +121,7 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function cleanupCaptchas() {
+export async function ccleanupCaptchas() {
   try {
     await queryAsync(
       `

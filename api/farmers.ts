@@ -28,7 +28,7 @@ const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "6Lelg9krAAAAAPt6l1_NUg
 
 // get farmer test db connect
 router.get("/getfarmer", (req, res) => {
-  conn.query("SELECT * FROM Farmers", (err, result, fields) => {
+  conn.query("SELECT * FROM tb_farmers", (err, result, fields) => {
     if (err) {
       console.error("DB Query Error:", err);
       return res.status(500).json({ message: "Internal Server Error" });
@@ -43,7 +43,7 @@ router.get("/getfarmer", (req, res) => {
 // get where id
 router.get("/getfarmer/:id", (req, res) => {
   const farmerId = req.params.id; // ดึงค่าที่ส่งมา
-  const sql = "SELECT * FROM Farmers WHERE id = ?";
+  const sql = "SELECT * FROM tb_farmers WHERE farmers_id = ?";
 
   conn.query(sql, [farmerId], (err, result, fields) => {
     if (err) {

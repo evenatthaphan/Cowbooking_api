@@ -82,11 +82,11 @@ router.post("/register", async (req: Request, res: Response) => {
 
   // เช็คชื่อซ้ำ
   const checkFarmNameSql =
-    "SELECT id FROM Farmers WHERE farm_name = ?";
+    "SELECT id FROM tb_farmers WHERE farmers_name = ?";
 
   conn.query(checkFarmNameSql, [Farmer.farm_name], (err, rows) => {
     if (err) {
-      console.error("Error checking farm_name:", err);
+      console.error("Error checking farmers_name:", err);
       return res.status(500).json({ error: "Error checking farm_name" });
     }
 
@@ -96,7 +96,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
     //เช็คเบอร์ + email ซ้ำ 
     const checkSql =
-      "SELECT * FROM Farmers WHERE phonenumber = ? OR farmer_email = ?";
+      "SELECT * FROM tb_farmers WHERE farmers_phonenumber = ? OR farmers_email = ?";
 
     conn.query(
       checkSql,
@@ -129,18 +129,18 @@ router.post("/register", async (req: Request, res: Response) => {
 
           // insert
           const sql = `
-            INSERT INTO Farmers 
+            INSERT INTO tb_farmers 
               (
-                farm_name,
-                farm_password,
-                password,
-                phonenumber,
-                farmer_email,
-                profile_image,
-                farm_address,
-                province,
-                district,
-                locality
+                farmers_name,
+                farmes_hashpassword,
+                farmers_password,
+                farmers_phonenumber,
+                farmers_email,
+                farmers_profile_image,
+                farmers_address,
+                farmers_province,
+                farmers_district,
+                farners_locality,               
               )
             VALUES (?, ?, ?, ?, ?, 
               'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',
@@ -192,7 +192,7 @@ router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res
     let farmer: FarmerPostRequest = req.body;
 
     // กำหนด type ให้ result 
-    let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
+    let sql = mysql.format("SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]);
     let result = await queryAsync(sql) as FarmerPostRequest[];
 
     if (result.length === 0) {
@@ -211,13 +211,12 @@ router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res
     const updatedFarmer = { ...farmerOriginal, ...farmer };
 
     sql =
-      "UPDATE `Farmers` SET `farm_name`=?, `phonenumber`=?, `farmer_email`=?, `profile_image`=?, `farm_address`=? WHERE `id`=?";
+      "UPDATE `tb_farmers` SET `farmers_name`=?, `farmers_phonenumber`=?, `farmers_email`=?, `farmers_profile_image`=?,  WHERE `farmers_id`=?";
     sql = mysql.format(sql, [
       updatedFarmer.farm_name,
       updatedFarmer.phonenumber,
       updatedFarmer.farmer_email,
       updatedFarmer.profile_image,
-      updatedFarmer.farm_address,
       id,
     ]);
 
@@ -250,7 +249,7 @@ router.put("/changepass/:id", async (req, res) => {
 
   try {
     // หา farmer
-    let sql = mysql.format("SELECT * FROM Farmers WHERE id = ?", [id]);
+    let sql = mysql.format("SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]);
     let result = (await queryAsync(sql)) as FarmerPostRequest[];
 
     if (!result || result.length === 0) {
@@ -275,9 +274,9 @@ router.put("/changepass/:id", async (req, res) => {
 
     // update BOTH hashed + plain
     const updateSql = `
-      UPDATE Farmers 
-      SET farm_password = ?, password = ? 
-      WHERE id = ?
+      UPDATE tb_farmers 
+      SET farmes_hashpassword = ?, farmers_password = ? 
+      WHERE farmers_id = ?
     `;
 
     conn.query(updateSql, [hashedPassword, new_password, id], (err) => {
@@ -365,10 +364,10 @@ router.put("/changepass/:id", async (req, res) => {
 // Get distinct provinces from Farmers
 router.get("/locations/provinces", (req, res) => {
   const sql = `
-    SELECT DISTINCT province 
-    FROM Farmers 
-    WHERE province IS NOT NULL AND province <> ''
-    ORDER BY province ASC
+    SELECT DISTINCT farmers_province 
+    FROM tb_farmers 
+    WHERE farmers_province IS NOT NULL AND farmers_province <> ''
+    ORDER BY farmers_province ASC
   `;
   conn.query(sql, (err, result) => {
     if (err) {
@@ -383,10 +382,10 @@ router.get("/locations/provinces", (req, res) => {
 router.get("/locations/districts/:province", (req, res) => {
   const { province } = req.params;
   const sql = `
-    SELECT DISTINCT district 
-    FROM Farmers 
-    WHERE district IS NOT NULL AND district <> '' AND province = ?
-    ORDER BY district ASC
+    SELECT DISTINCT farmers_district 
+    FROM tb_farmers 
+    WHERE farmers_district IS NOT NULL AND farmers_district  <> '' AND farmers_province = ?
+    ORDER BY farmers_district ASC
   `;
   conn.query(sql, [province], (err, result) => {
     if (err) {
@@ -406,9 +405,9 @@ router.get("/locations/localities/:province/:district", (req, res) => {
   }
 
   const sql = `
-    SELECT DISTINCT locality 
-    FROM Farmers 
-    WHERE locality IS NOT NULL AND locality <> '' AND province = ? AND district = ?
+    SELECT DISTINCT farmers_locality 
+    FROM tb_farmers 
+    WHERE farmers_locality IS NOT NULL AND farmers_locality <> '' AND farmers_province = ? AND farmers_district = ?
     ORDER BY locality ASC
   `;
   conn.query(sql, [province, district], (err, result) => {

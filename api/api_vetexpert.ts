@@ -8,7 +8,7 @@ import multer from "multer";
 import cloudinary from "../src/config/cloudinary";
 import { promises as fs } from "fs";
 import axios from "axios";
-import { db } from "../firebaseconnect";
+//import { db } from "../firebaseconnect";
 import { v4 as uuidv4 } from "uuid";
 
 export const router = express.Router();
@@ -19,7 +19,7 @@ const RECAPTCHA_SECRET =
 
 //test get VetExperts (db connect)
 router.get("/getVetExperts", (req, res) => {
-  conn.query("SELECT * FROM VetExperts", (err, result, fields) => {
+  conn.query("SELECT * FROM tb_vetexperts", (err, result, fields) => {
     if (err) {
       console.error("DB Query Error:", err);
       return res.status(500).json({ message: "Internal Server Error" });
@@ -38,11 +38,11 @@ router.get("/getVetExperts/:id", (req, res) => {
   const sql = `
     SELECT 
       v.*,
-      SUM(vb.semen_stock) AS total_semen_stock
-    FROM VetExperts v
-    LEFT JOIN Vet_Bulls vb ON v.id = vb.vet_expert_id
-    WHERE v.id = ?
-    GROUP BY v.id
+      SUM(vb.bulls_semen_stock) AS total_semen_stock
+    FROM tb_vetexperts v
+    LEFT JOIN tb_vet_bulls vb ON v.vetexperts_id = vb.ref_vetexperts_id
+    WHERE v.vetexperts_id = ?
+    GROUP BY v.vetexperts_id
   `;
 
   conn.query(sql, [vetId], (err, result) => {
@@ -65,7 +65,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     console.log("req.body:", req.body);
     const VetExperts = req.body;
 
-    // check filds
+    // check fields
     if (
       !VetExperts.VetExpert_name ||
       !VetExperts.VetExpert_password ||
@@ -78,43 +78,129 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       return res.status(400).json({ error: "Address fields are required" });
     }
 
-    // upload VetExpert_PL
-    let uploadResult = null;
+    // upload license
+    let uploadResult: any = null;
     if (req.file) {
       uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "vet_experts",
       });
-      await fs.unlink(req.file.path); // 
+      await fs.unlink(req.file.path);
     }
 
-    const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
-    const pendingId = uuidv4();
+    // hash password
+    const hashedPassword = await bcrypt.hash(
+      VetExperts.VetExpert_password,
+      10
+    );
 
-    await db.ref(`pending_vet_experts/${pendingId}`).set({
-      VetExpert_name: VetExperts.VetExpert_name,
-      VetExpert_password: hashedPassword,
-      phonenumber: VetExperts.phonenumber,
-      VetExpert_email: VetExperts.VetExpert_email || "",
-      VetExpert_address: VetExperts.VetExpert_address || "",
-      province: VetExperts.province,
-      district: VetExperts.district,
-      locality: VetExperts.locality,
-      VetExpert_PL: uploadResult ? uploadResult.secure_url : null,
-      profile_image:
-        "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
-      created_at: new Date().toISOString(),
-      status: "pending", // รอการอนุมัติ
-    });
+    const profileImage =
+      "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg";
+
+    // SQL
+    const sql = `
+      INSERT INTO tb_vetexperts (
+        vetexperts_name,
+        vetexperts_hashpassword,
+        vetexperts_password,
+        vetexperts_phonenumber,
+        vetexperts__email,
+        vetexperts_profile_image,
+        vetexperts_province,
+        vetexperts_district,
+        vetexperts_locality,
+        vetexperts__address,
+        vetexperts_license,
+        vetexperts_status,
+        vetexperts_loc_lat,
+        vetexperts_loc_long
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      VetExperts.VetExpert_name,
+      hashedPassword,
+      VetExperts.VetExpert_password, 
+      VetExperts.phonenumber,
+      VetExperts.VetExpert_email || "",
+      profileImage,
+      VetExperts.province,
+      VetExperts.district,
+      VetExperts.locality,
+      VetExperts.VetExpert_address || "",
+      uploadResult ? uploadResult.secure_url : null,
+      0,      // status = 0
+      null,   // lat
+      null,   // long
+    ];
+
+
+    const result: any = await queryAsync(sql, values);
 
     res.status(201).json({
-      message: "Registration submitted for admin approval",
-      pendingId,
+      message: "Registration successful (pending approval)",
+      vetexperts_id: result.insertId,
     });
   } catch (err) {
     console.error("Error in /register:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+// router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
+//   try {
+//     console.log("req.body:", req.body);
+//     const VetExperts = req.body;
+
+//     // check filds
+//     if (
+//       !VetExperts.VetExpert_name ||
+//       !VetExperts.VetExpert_password ||
+//       !VetExperts.phonenumber
+//     ) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+
+//     if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
+//       return res.status(400).json({ error: "Address fields are required" });
+//     }
+
+//     // upload VetExpert_PL
+//     let uploadResult = null;
+//     if (req.file) {
+//       uploadResult = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "vet_experts",
+//       });
+//       await fs.unlink(req.file.path); // 
+//     }
+
+//     const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
+//     const pendingId = uuidv4();
+
+//     await db.ref(`pending_vet_experts/${pendingId}`).set({
+//       VetExpert_name: VetExperts.VetExpert_name,
+//       VetExpert_password: hashedPassword,
+//       phonenumber: VetExperts.phonenumber,
+//       VetExpert_email: VetExperts.VetExpert_email || "",
+//       VetExpert_address: VetExperts.VetExpert_address || "",
+//       province: VetExperts.province,
+//       district: VetExperts.district,
+//       locality: VetExperts.locality,
+//       VetExpert_PL: uploadResult ? uploadResult.secure_url : null,
+//       profile_image:
+//         "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
+//       created_at: new Date().toISOString(),
+//       status: "pending", // รอการอนุมัติ
+//     });
+
+//     res.status(201).json({
+//       message: "Registration submitted for admin approval",
+//       pendingId,
+//     });
+//   } catch (err) {
+//     console.error("Error in /register:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {
@@ -128,7 +214,7 @@ router.post("/insertfarm", (req, res) => {
   }
 
   // เช็คว่ามี address ซ้ำหรือยัง
-  const checking = "SELECT * FROM Farms WHERE address = ?";
+  const checking = "SELECT * FROM tb_farms WHERE frams_address = ?";
   conn.query(checking, [Farms.address], (err, rows) => {
     if (err) {
       console.error("Error checking address:", err);
@@ -142,7 +228,7 @@ router.post("/insertfarm", (req, res) => {
 
     // ถ้าไม่มีซ้ำ -> insert
     const sql = `
-      INSERT INTO Farms (name, province, district, locality, address)
+      INSERT INTO tb_farms (frams_name, frams_province, frams_district, frams_locality, frams_address)
       VALUES (?, ?, ?, ?, ?)
     `;
 
@@ -186,7 +272,7 @@ router.post("/vet/schedule", async (req, res) => {
 
     // check vet_expert_id is existed
     const experts: any = await queryAsync(
-      "SELECT id FROM VetExperts WHERE id = ?",
+      "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?",
       [vet_expert_id]
     );
     if (experts.length === 0) {
@@ -197,14 +283,14 @@ router.post("/vet/schedule", async (req, res) => {
     for (const time of times) {
       // check time
       const existing: any = await queryAsync(
-        "SELECT id FROM Vet_schedules WHERE vet_expert_id = ? AND available_date = ? AND available_time = ?",
+        "SELECT schedules_id FROM tb_vet_schedules WHERE ref_vetexperts_id = ? AND schedules_available_date = ? AND schedules_available_time = ?",
         [vet_expert_id, available_date, time]
       );
 
       if (existing.length > 0) continue; //
 
       const result: any = await queryAsync(
-        "INSERT INTO Vet_schedules (vet_expert_id, available_date, available_time, is_booked) VALUES (?, ?, ?, false)",
+        "INSERT INTO tb_vet_schedules (ref_vetexperts_id, schedules_available_date, schedules_available_time, schedules_is_booked) VALUES (?, ?, ?, false)",
         [vet_expert_id, available_date, time]
       );
       insertedIds.push(result.insertId);
@@ -290,10 +376,10 @@ router.get("/get/schedule/:id", async (req, res) => {
     }
 
     const sql = `
-      SELECT id, vet_expert_id, available_date, available_time, is_booked, created_at
-      FROM Vet_schedules
-      WHERE vet_expert_id = ?
-      ORDER BY available_date, available_time
+      SELECT schedules_id, ref_vetexperts_id, schedules_available_date, schedules_available_time, schedules_is_booked, schedules_create_at
+      FROM tb_vet_schedules
+      WHERE ref_vetexperts_id = ?
+      ORDER BY schedules_available_date, schedules_available_time
     `;
 
     conn.query(sql, [vetId], (err, results) => {

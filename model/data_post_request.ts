@@ -1,3 +1,5 @@
+import { RowDataPacket } from "mysql2/typings/mysql/lib/protocol/packets/RowDataPacket";
+
 export interface FarmerPostRequest {
     id: number;
     farm_name: string;
@@ -67,7 +69,6 @@ export interface BullImages {
     image5: string;
 }
 
-
 export interface BullRow {
   bull_id: number;
   Bullname: string;
@@ -91,6 +92,32 @@ export interface BullRow {
   image4: string | null;
   image5: string | null;
 }
+
+interface BullRows extends RowDataPacket {
+  bull_id: number;
+  bulls_name: string;
+  bulls_breed: string;
+  bulls_age: number;
+  bulls_characteristics: string;
+  bulls_contest_records: string;
+
+  bulls_price_per_dose: number | null;
+  bulls_semen_stock: number | null;
+
+  farm_id: number;
+  farm_name: string;
+  frams_province: string;
+  frams_district: string;
+  frams_locality: string;
+  frams_address: string;
+
+  bulls_image1?: string | null;
+  bulls_image2?: string | null;
+  bulls_image3?: string | null;
+  bulls_image4?: string | null;
+  bulls_image5?: string | null;
+}
+
 
 export interface Bull_VET {
   bull_id: number;

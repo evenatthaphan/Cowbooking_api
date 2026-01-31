@@ -103,7 +103,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
         vetexperts_hashpassword,
         vetexperts_password,
         vetexperts_phonenumber,
-        vetexperts__email,
+        vetexperts_email,
         vetexperts_profile_image,
         vetexperts_province,
         vetexperts_district,

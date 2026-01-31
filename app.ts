@@ -6,7 +6,7 @@ import { router as farmers } from "./api/api_farmers";
 import { router as vetexpert } from "./api/api_vetexpert";
 import { router as usedtogether } from "./api/usedTogether";
 import { router as recaptcha } from "./api/recaptcha";
-import { router as queuebook} from "./api/Queue_bookings";
+import { router as queuebook} from "./api/api_queue_bookings";
 import { router as bull } from "./api/bull";
 import { router as admin } from "./api/admin"
 import cors from "cors";

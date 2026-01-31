@@ -78,13 +78,28 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       return res.status(400).json({ error: "Address fields are required" });
     }
 
-    // upload license
-    let uploadResult: any = null;
+    // handle license (FILE or URL)
+    let licenseUrl: string | null = null;
+
+    // upload file
     if (req.file) {
-      uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "vet_experts",
       });
       await fs.unlink(req.file.path);
+      licenseUrl = uploadResult.secure_url;
+    }
+
+    // fallback to URL from body
+    if (!licenseUrl && VetExperts.VetExpert_PL) {
+      licenseUrl = VetExperts.VetExpert_PL;
+    }
+
+    // license → reject
+    if (!licenseUrl) {
+      return res
+        .status(400)
+        .json({ error: "VetExpert license is required" });
     }
 
     // hash password
@@ -127,12 +142,11 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       VetExperts.district,
       VetExperts.locality,
       VetExperts.VetExpert_address || "",
-      uploadResult ? uploadResult.secure_url : null,
-      0,      // status = 0
-      null,   // lat
-      null,   // long
+      licenseUrl, // 
+      0,
+      null,
+      null,
     ];
-
 
     const result: any = await queryAsync(sql, values);
 
@@ -145,6 +159,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 // router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
 //   try {

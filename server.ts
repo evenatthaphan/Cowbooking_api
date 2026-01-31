@@ -1,6 +1,6 @@
 import http from "http";
 import { app } from "./app";
-import { cleanupCaptchas } from "./api/recaptcha";
+import { cleanupCaptchas } from "./api/api_recaptcha";
 
 const port = process.env.PORT || 3000;
 

@@ -5,8 +5,11 @@ import { Bull } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import { MysqlError } from "mysql";
+
 
 export const router = express.Router();
+
 
 // login for 3 type ****
 router.post("/login", async (req, res) => {
@@ -130,10 +133,10 @@ router.post("/search", async (req, res) => {
       b.bulls_breed,
       b.bulls_age,
       b.bulls_characteristics,
+      b.bulls_contest_records,
 
       vb.bulls_price_per_dose,
       vb.bulls_semen_stock,
-      vb.bulls_contest_records,
 
       f.frams_id AS farm_id,
       f.frams_name AS farm_name,
@@ -212,10 +215,10 @@ router.post("/search", async (req, res) => {
           bulls_breed: r.bulls_breed,
           bulls_age: r.bulls_age,
           bulls_characteristics: r.bulls_characteristics,
+          bulls_contest_records: r.bulls_contest_records,
 
           price_per_dose: r.bulls_price_per_dose,
           semen_stock: r.bulls_semen_stock,
-          contest_records: r.bulls_contest_records,
 
           farm: {
             farm_id: r.farm_id,
@@ -322,11 +325,11 @@ router.get("/bullData", async (req, res) => {
         b.bulls_breed,
         b.bulls_age,
         b.bulls_characteristics,
+        b.bulls_contest_records,
         b.added_by,
 
         vb.bulls_price_per_dose,
         vb.bulls_semen_stock,
-        vb.bulls_contest_records,
 
         f.frams_id AS farm_id,
         f.frams_name AS farm_name,
@@ -363,10 +366,10 @@ router.get("/bullData", async (req, res) => {
             bulls_breed: row.bulls_breed,
             bulls_age: row.bulls_age,
             bulls_characteristics: row.bulls_characteristics,
+            contest_records: row.bulls_contest_records,
 
             price_per_dose: row.bulls_price_per_dose,
             semen_stock: row.bulls_semen_stock,
-            contest_records: row.bulls_contest_records,
             added_by: row.added_by,
 
             farm: {

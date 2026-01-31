@@ -155,11 +155,11 @@ router.get("/getby_vetid/:vet_id", (req, res) => {
       b.bulls_name,
       b.bulls_breed,
       b.bulls_characteristics,
+      b.bulls_contest_records,
 
       vb.vet_bulls_id,
       vb.bulls_price_per_dose,
       vb.bulls_semen_stock,
-      vb.bulls_contest_records,
 
       f.frams_id AS farm_id,
       f.frams_name AS farm_name,

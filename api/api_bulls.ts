@@ -5,6 +5,7 @@ import { Bull_VET} from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import { QueryError, RowDataPacket } from "mysql2";
 
 
 export const router = express.Router();

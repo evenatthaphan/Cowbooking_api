@@ -1,11 +1,12 @@
 import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
-import { BullRow } from "../model/data_post_request";
+//import { BullRow } from "../model/data_post_request";
 import { Bull } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
 import { MysqlError } from "mysql";
+import { QueryError, RowDataPacket } from "mysql2";
 
 
 export const router = express.Router();
@@ -326,7 +327,6 @@ router.get("/bullData", async (req, res) => {
         b.bulls_age,
         b.bulls_characteristics,
         b.bulls_contest_records,
-        b.added_by,
 
         vb.bulls_price_per_dose,
         vb.bulls_semen_stock,
@@ -350,11 +350,13 @@ router.get("/bullData", async (req, res) => {
       LEFT JOIN tb_bulls_img i ON b.bulls_id = i.ref_bulls_id
     `;
 
-    conn.query(sql, (err, rows: any[]) => {
-      if (err) {
-        console.error("Error fetching bulls:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
+    conn.query(
+      sql,
+      (err: MysqlError | null, rows: RowDataPacket[]) => {
+        if (err) {
+          console.error("Error fetching bulls:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
 
       const bullsMap: Record<number, any> = {};
 
@@ -370,7 +372,6 @@ router.get("/bullData", async (req, res) => {
 
             price_per_dose: row.bulls_price_per_dose,
             semen_stock: row.bulls_semen_stock,
-            added_by: row.added_by,
 
             farm: {
               farm_id: row.farm_id,

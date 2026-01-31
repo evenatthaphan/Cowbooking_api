@@ -19,7 +19,7 @@ router.post("/queue/book", async (req, res) => {
 
     // check time and day are FREE
     const schedules: any = await queryAsync(
-      "SELECT * FROM Vet_schedules WHERE id = ? AND vet_expert_id = ? AND is_booked = false",
+      "SELECT * FROM tb_vet_schedules WHERE schedules_id = ? AND ref_vetexperts_id = ? AND schedules_is_booked = false",
       [schedule_id, vet_expert_id]
     );
 
@@ -40,8 +40,8 @@ router.post("/queue/book", async (req, res) => {
 
     // insert queue
     const sqlInsert = `
-      INSERT INTO Queue_bookings
-      (farmer_id, vet_expert_id, bull_id, schedule_id, dose, detailBull, status, vet_notes, created_at, updated_at)
+      INSERT INTO tb_queue_bookings
+      ( ref_farmers_id, ref_vetexperts_id, ref_bulls_id, schedules_id, dose, detailBull, status, vet_notes, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -86,21 +86,21 @@ router.get("/bookings", async (req, res) => {
   try {
     const sql = `
       SELECT 
-        b.id,
-        b.farmer_id,
-        b.vet_expert_id,
-        b.bull_id,
-        b.schedule_id,
-        b.detailBull,
-        b.status,
-        b.vet_notes,
+        b.queue_bookings_id,
+        b.ref_farmers_id,
+        b.ref_vetexperts_id,
+        b.ref_bulls_i,
+        b.ref_schedules_id,
+        b.bookings_detail_bull,
+        b.bookings_status,
+        b.bookings_vet_notes,
         b.created_at,
         b.updated_at,
-        f.farm_name AS farmer_name,
-        v.VetExpert_name AS vet_name
-      FROM Queue_bookings b
-      LEFT JOIN Farmers f ON b.farmer_id = f.id
-      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
+        f.farmers_name AS farmers_name,
+        v.vetexperts_name AS vetexperts_name
+      FROM tb_queue_bookings b
+      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f.farmers_id
+      LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
       ORDER BY b.created_at DESC
     `;
 
@@ -119,29 +119,29 @@ router.get("/bookings/farmer", async (req, res) => {
 
     let sql = `
       SELECT 
-        b.id,
-        b.farmer_id,
-        b.vet_expert_id,
-        b.bull_id,
-        b.schedule_id,
-        b.detailBull,
-        b.status,
-        b.vet_notes,
+        b.queue_bookings_id,
+        b.ref_farmers_id,
+        b.ref_vetexperts_id,
+        b.ref_bulls_id,
+        b.ref_schedules_id,
+        b.bookings_detail_bull,
+        b.bookings_status,
+        b.bookings_vet_notes,
         b.created_at,
         b.updated_at,
-        f.farm_name AS farmer_name,
-        v.VetExpert_name AS vet_name
-      FROM Queue_bookings b
-      LEFT JOIN Farmers f ON b.farmer_id = f.id
-      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
+        f.farmers_name AS farmers_name,
+        v.vetexperts_name AS vetexperts_name
+      FROM tb_queue_bookings b
+      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f. farmers_id
+      LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
     `;
 
     const params = [];
     if (farmer_id) {
-      sql += " WHERE b.farmer_id = ?";
+      sql += " WHERE b.ref_farmers_id = ?";
       params.push(farmer_id);
     } else if (vet_expert_id) {
-      sql += " WHERE b.vet_expert_id = ?";
+      sql += " WHERE b.ref_vetexperts_id = ?";
       params.push(vet_expert_id);
     }
 
@@ -162,28 +162,28 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
 
     const sql = `
       SELECT 
-        b.id AS booking_id,
-        b.farmer_id,
-        f.farm_name AS farmer_name,
-        b.vet_expert_id,
-        v.VetExpert_name AS vet_name,
-        b.bull_id AS vet_bull_id,
-        bs.Bullname AS bullname,
-        bs.Bullbreed AS bullbreed,
-        b.dose AS dose,
-        s.available_date AS schedule_date,
-        s.available_time AS schedule_time,
-        b.detailBull,
-        b.status,
-        b.vet_notes,
+        b.queue_bookings_id AS queue_bookings_id,
+        b.ref_farmers_id,
+        f.farmers_name AS farmers_name,
+        b.ref_vetexperts_id,
+        v.vetexperts_name AS vetexperts_name,
+        b.ref_bulls_id AS ref_bulls_id,
+        bs.bulls_name AS bulls_name,
+        bs.bulls_breed AS bulls_breed,
+        b.bookings_dose AS bookings_dose,
+        s.schedules_available_date AS schedule_date,
+        s.schedules_available_time AS schedule_time,
+        b.bookings_detail_bull,
+        b.bookings_status,
+        b.bookings_vet_notes,
         b.created_at
-      FROM Queue_bookings b
-      LEFT JOIN Farmers f ON b.farmer_id = f.id
-      LEFT JOIN VetExperts v ON b.vet_expert_id = v.id
-      LEFT JOIN Vet_schedules s ON b.schedule_id = s.id
-      LEFT JOIN Vet_Bulls vb ON b.bull_id = vb.id
-      LEFT JOIN BullSires bs ON vb.bull_id = bs.id
-      WHERE b.vet_expert_id = ?
+      FROM tb_queue_bookings b
+      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f.farmers_id
+      LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
+      LEFT JOIN tb_vet_schedules s ON b. ref_schedules_id = s.schedules_id
+      LEFT JOIN tb_vet_bulls vb ON b.ref_bulls_id = vb.vet_bulls_id
+      LEFT JOIN tb_bull_sires bs ON vb.ref_bulls_id = bs.bulls_id
+      WHERE b.ref_vetexperts_id = ?
       ORDER BY b.created_at DESC
     `;
 
@@ -216,9 +216,9 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
     }
 
     const sql = `
-  UPDATE Queue_bookings
-  SET status = ?, vet_notes = ?, updated_at = NOW()
-  WHERE id = ?
+  UPDATE tb_queue_bookings
+  SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
+  WHERE queue_bookings_id = ?
 `;
 
     const result = await queryAsync(sql, [
@@ -259,7 +259,7 @@ router.delete("/queue/cancel/:booking_id", async (req, res) => {
 
     // check booking is existed
     const booking: any = await queryAsync(
-      "SELECT schedule_id FROM Queue_bookings WHERE id = ?",
+      "SELECT ref_schedules_id FROM tb_queue_bookings WHERE queue_bookings_id = ?",
       [booking_id]
     );
 
@@ -270,10 +270,10 @@ router.delete("/queue/cancel/:booking_id", async (req, res) => {
     const schedule_id = booking[0].schedule_id;
 
     // deleted booking
-    await queryAsync("DELETE FROM Queue_bookings WHERE id = ?", [booking_id]);
+    await queryAsync("DELETE FROM tb_queue_bookings WHERE queue_bookings_id = ?", [booking_id]);
 
     // update status schedule 
-    await queryAsync("UPDATE Vet_schedules SET is_booked = false WHERE id = ?", [
+    await queryAsync("UPDATE tb_vet_schedules SET schedules_is_booked = false WHERE schedules_id = ?", [
       schedule_id,
     ]);
 

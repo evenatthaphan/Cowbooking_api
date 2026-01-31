@@ -4,11 +4,11 @@ import bodyParser from "body-parser";
 import { router as index } from "./api/index";
 import { router as farmers } from "./api/api_farmers";
 import { router as vetexpert } from "./api/api_vetexpert";
-import { router as usedtogether } from "./api/usedTogether";
-import { router as recaptcha } from "./api/recaptcha";
+import { router as usedtogether } from "./api/api_used_together";
+import { router as recaptcha } from "./api/api_recaptcha";
 import { router as queuebook} from "./api/api_queue_bookings";
-import { router as bull } from "./api/bull";
-import { router as admin } from "./api/admin"
+import { router as bull } from "./api/api_bulls";
+import { router as admin } from "./api/api_admin"
 import cors from "cors";
 
 // Object app => webApi

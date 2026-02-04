@@ -86,13 +86,22 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
       WHERE recaptcha_id = ?
     `;
 
-    const [rows]: any = await queryAsync(sql, [captchaId]);
+    // const [rows]: any = await queryAsync(sql, [captchaId]);
 
-    if (rows.length === 0) {
+    // if (rows.length === 0) {
+    //   return res.status(400).json({ success: false, message: "not found" });
+    // }
+
+    // const captcha = rows[0];
+
+    const rows: any = await queryAsync(sql, [captchaId]);
+
+    if (!rows || rows.length === 0) {
       return res.status(400).json({ success: false, message: "not found" });
     }
 
     const captcha = rows[0];
+
 
     // หมดอายุ 5 นาที
     const EXPIRE_MS = 5 * 60 * 1000;

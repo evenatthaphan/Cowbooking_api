@@ -23,7 +23,7 @@ router.get("/captcha", async (req: Request, res: Response) => {
 
     const sql = `
       INSERT INTO tb_recaptcha
-      (recaptcha_id, credate_at, recaptcha_text)
+      (recaptcha_id, created_at, recaptcha_text)
       VALUES (?, ?, ?)
     `;
 
@@ -81,7 +81,7 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
     }
 
     const sql = `
-      SELECT recaptcha_text, credate_at
+      SELECT recaptcha_text, created_at
       FROM tb_recaptcha
       WHERE recaptcha_id = ?
     `;
@@ -96,7 +96,7 @@ router.post("/captcha/verify", async (req: Request, res: Response) => {
 
     // หมดอายุ 5 นาที
     const EXPIRE_MS = 5 * 60 * 1000;
-    const createdAt = new Date(captcha.credate_at).getTime();
+    const createdAt = new Date(captcha.created_at).getTime();
 
     if (Date.now() - createdAt > EXPIRE_MS) {
       return res.status(400).json({ success: false, message: "expired" });
@@ -126,7 +126,7 @@ export async function cleanupCaptchas() {
     await queryAsync(
       `
       DELETE FROM tb_recaptcha
-      WHERE credate_at < (NOW() - INTERVAL 1 DAY)
+      WHERE created_at < (NOW() - INTERVAL 1 DAY)
       `
     );
 

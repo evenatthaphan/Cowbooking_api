@@ -29,7 +29,7 @@ router.post("/login", async (req, res) => {
 
     if (farmers.length > 0) {
       const farmer = farmers[0];
-      const isMatch = await bcrypt.compare(password, farmer.farmers_hashpassword);
+      const isMatch = await bcrypt.compare(password, farmer.farmers_password);
 
       if (!isMatch) {
         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
@@ -56,7 +56,7 @@ router.post("/login", async (req, res) => {
           return res.status(403).json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
         }
 
-        const isMatch = await bcrypt.compare(password, vet.vetexperts_hashpassword);
+        const isMatch = await bcrypt.compare(password, vet.vetexperts_password);
         if (!isMatch) {
           return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
         }

@@ -20,105 +20,187 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "loginId and password are required" });
   }
 
-  //  Farmers 
+  //  FARMER
   const farmerSql =
     "SELECT * FROM tb_farmers WHERE farmers_name = ? OR farmers_phonenumber = ? OR farmers_email = ?";
 
-  conn.query(farmerSql, [loginId, loginId, loginId], async (err, result) => {
+  conn.query(farmerSql, [loginId, loginId, loginId], async (err, farmers) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    if (result.length > 0) {
-      const user = result[0];
-      const isMatch = await bcrypt.compare(password, user.farm_password);
+    if (farmers.length > 0) {
+      const farmer = farmers[0];
+      const isMatch = await bcrypt.compare(password, farmer.farm_password);
 
       if (!isMatch) {
         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
       }
 
-      return res.json({ role: "farmer", message: "เข้าสู่ระบบสำเร็จ", user });
+      return res.json({ role: "farmer", message: "เข้าสู่ระบบสำเร็จ", user: farmer });
     }
 
-    // VetExperts 
+    //  VET 
     const vetSql =
       "SELECT * FROM tb_vetexperts WHERE vetexperts_name = ? OR vetexperts_phonenumber = ? OR vetexperts_email = ?";
 
-    conn.query(vetSql, [loginId, loginId, loginId], async (err2, result2) => {
+    conn.query(vetSql, [loginId, loginId, loginId], async (err2, vets) => {
       if (err2) return res.status(500).json({ error: err2.message });
 
-      if (result2.length > 0) {
-        const vet = result2[0];
+      if (vets.length > 0) {
+        const vet = vets[0];
 
-        // เช็คสถานะ
         if (vet.vetexperts_status === 0) {
-          return res.status(403).json({
-            error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ",
-          });
+          return res.status(403).json({ error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ" });
         }
 
         if (vet.vetexperts_status !== 1) {
-          return res.status(403).json({
-            error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้",
-          });
+          return res.status(403).json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
         }
 
-        //เช็ครหัสผ่าน
-        const isMatch2 = await bcrypt.compare(
-          password,
-          vet.vetexperts_hashpassword
-        );
-
-        if (!isMatch2) {
+        const isMatch = await bcrypt.compare(password, vet.vetexperts_hashpassword);
+        if (!isMatch) {
           return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
         }
 
-        return res.json({
-          role: "vet",
-          message: "เข้าสู่ระบบสำเร็จ",
-          user: vet,
-        });
+        return res.json({ role: "vet", message: "เข้าสู่ระบบสำเร็จ", user: vet });
       }
 
-      // ไม่พบผู้ใช้
-      return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
-    });
-
-
-      //  Admins 
+      // ADMIN 
       const adminSql =
         "SELECT * FROM tb_admins WHERE admins_name = ? OR admins_phonenumber = ? OR admins_email = ?";
 
-      conn.query(
-        adminSql,
-        [loginId, loginId, loginId],
-        async (err3, result3) => {
-          if (err3) return res.status(500).json({ error: err3.message });
+      conn.query(adminSql, [loginId, loginId, loginId], async (err3, admins) => {
+        if (err3) return res.status(500).json({ error: err3.message });
 
-          if (result3.length > 0) {
-            const admin = result3[0];
-            const isMatch3 = await bcrypt.compare(
-              password,
-              admin.admin_password
-            );
+        if (admins.length > 0) {
+          const admin = admins[0];
+          const isMatch = await bcrypt.compare(password, admin.admin_password);
 
-            if (!isMatch3) {
-              return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
-            }
-
-            return res.json({
-              role: "admin",
-              message: "เข้าสู่ระบบสำเร็จ",
-              user: admin,
-            });
+          if (!isMatch) {
+            return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
           }
 
-          // ไม่พบผู้ใช้ในทุก table
-          return res
-            .status(400)
-            .json({ error: "Invalid username or password" });
+          return res.json({
+            role: "admin",
+            message: "เข้าสู่ระบบสำเร็จ",
+            user: admin,
+          });
         }
-      );
+
+        // ไม่พบทุก role
+        return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+      });
+    });
   });
 });
+
+
+
+// router.post("/login", async (req, res) => {
+//   const { loginId, password } = req.body;
+
+//   if (!loginId || !password) {
+//     return res.status(400).json({ error: "loginId and password are required" });
+//   }
+
+//   //  Farmers 
+//   const farmerSql =
+//     "SELECT * FROM tb_farmers WHERE farmers_name = ? OR farmers_phonenumber = ? OR farmers_email = ?";
+
+//   conn.query(farmerSql, [loginId, loginId, loginId], async (err, result) => {
+//     if (err) return res.status(500).json({ error: err.message });
+
+//     if (result.length > 0) {
+//       const user = result[0];
+//       const isMatch = await bcrypt.compare(password, user.farm_password);
+
+//       if (!isMatch) {
+//         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//       }
+
+//       return res.json({ role: "farmer", message: "เข้าสู่ระบบสำเร็จ", user });
+//     }
+
+//     // VetExperts 
+//     const vetSql =
+//       "SELECT * FROM tb_vetexperts WHERE vetexperts_name = ? OR vetexperts_phonenumber = ? OR vetexperts_email = ?";
+
+//     conn.query(vetSql, [loginId, loginId, loginId], async (err2, result2) => {
+//       if (err2) return res.status(500).json({ error: err2.message });
+
+//       if (result2.length > 0) {
+//         const vet = result2[0];
+
+//         // เช็คสถานะ
+//         if (vet.vetexperts_status === 0) {
+//           return res.status(403).json({
+//             error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ",
+//           });
+//         }
+
+//         if (vet.vetexperts_status !== 1) {
+//           return res.status(403).json({
+//             error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้",
+//           });
+//         }
+
+//         //เช็ครหัสผ่าน
+//         const isMatch2 = await bcrypt.compare(
+//           password,
+//           vet.vetexperts_hashpassword
+//         );
+
+//         if (!isMatch2) {
+//           return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//         }
+
+//         return res.json({
+//           role: "vet",
+//           message: "เข้าสู่ระบบสำเร็จ",
+//           user: vet,
+//         });
+//       }
+
+//       // ไม่พบผู้ใช้
+//       return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+//     });
+
+
+//       //  Admins 
+//       const adminSql =
+//         "SELECT * FROM tb_admins WHERE admins_name = ? OR admins_phonenumber = ? OR admins_email = ?";
+
+//       conn.query(
+//         adminSql,
+//         [loginId, loginId, loginId],
+//         async (err3, result3) => {
+//           if (err3) return res.status(500).json({ error: err3.message });
+
+//           if (result3.length > 0) {
+//             const admin = result3[0];
+//             const isMatch3 = await bcrypt.compare(
+//               password,
+//               admin.admin_password
+//             );
+
+//             if (!isMatch3) {
+//               return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//             }
+
+//             return res.json({
+//               role: "admin",
+//               message: "เข้าสู่ระบบสำเร็จ",
+//               user: admin,
+//             });
+//           }
+
+//           // ไม่พบผู้ใช้ในทุก table
+//           return res
+//             .status(400)
+//             .json({ error: "Invalid username or password" });
+//         }
+//       );
+//   });
+// });
 
 
 

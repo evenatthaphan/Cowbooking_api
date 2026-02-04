@@ -29,7 +29,7 @@ router.post("/login", async (req, res) => {
 
     if (farmers.length > 0) {
       const farmer = farmers[0];
-      const isMatch = await bcrypt.compare(password, farmer.farmers_password);
+      const isMatch = await bcrypt.compare(password, farmer.farmers_hashpassword);
 
       if (!isMatch) {
         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
@@ -56,7 +56,7 @@ router.post("/login", async (req, res) => {
           return res.status(403).json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
         }
 
-        const isMatch = await bcrypt.compare(password, vet.vetexperts_password);
+        const isMatch = await bcrypt.compare(password, vet.vetexperts_hashpassword);
         if (!isMatch) {
           return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
         }
@@ -71,11 +71,24 @@ router.post("/login", async (req, res) => {
       conn.query(adminSql, [loginId, loginId, loginId], async (err3, admins) => {
         if (err3) return res.status(500).json({ error: err3.message });
 
+        // if (admins.length > 0) {
+        //   const admin = admins[0];
+        //   const isMatch = await bcrypt.compare(password, admin.admin_password);
+
+        //   if (!isMatch) {
+        //     return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+        //   }
+
+        //   return res.json({
+        //     role: "admin",
+        //     message: "เข้าสู่ระบบสำเร็จ",
+        //     user: admin,
+        //   });
+        // }
         if (admins.length > 0) {
           const admin = admins[0];
-          const isMatch = await bcrypt.compare(password, admin.admin_password);
 
-          if (!isMatch) {
+          if (password !== admin.admins_password) {
             return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
           }
 
@@ -85,6 +98,7 @@ router.post("/login", async (req, res) => {
             user: admin,
           });
         }
+
 
         // ไม่พบทุก role
         return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });

@@ -16,6 +16,9 @@ function generateCaptcha(len = 6) {
 
 // create new captcha
 router.get("/captcha", async (req: Request, res: Response) => {
+  // ล้างข้อมูลเก่า
+  await cleanupCaptchas(); 
+
   try {
     const code = generateCaptcha(6);
     const captchaId = crypto.randomBytes(8).toString("hex");

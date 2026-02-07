@@ -12,4 +12,4 @@ server.listen(port, () => {
 });
 
 // cleanup ทุก 1 ชั่วโมง
-setInterval(cleanupCaptchas, 60 * 60 * 1000);
+//setInterval(cleanupCaptchas, 60 * 60 * 1000);

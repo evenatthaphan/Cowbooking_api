@@ -9,6 +9,7 @@ import { router as recaptcha } from "./api/api_recaptcha";
 import { router as queuebook} from "./api/api_queue_bookings";
 import { router as bull } from "./api/api_bulls";
 import { router as admin } from "./api/api_admin"
+import { router as stat } from "./api/api_admin"
 import cors from "cors";
 
 // Object app => webApi
@@ -37,3 +38,4 @@ app.use("/api", recaptcha);  ///**** */
 app.use("/queuebook", queuebook)
 app.use("/bull", bull)
 app.use("/admin", admin)
+app.use("/stats", stat)

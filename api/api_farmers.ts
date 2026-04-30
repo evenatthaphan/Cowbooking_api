@@ -469,3 +469,61 @@ router.post("/like_bull", async (req: Request, res: Response) => {
     });
   });
 });
+
+// GET /like_bull/farmer/:farmer_id
+router.get("/like_bull/farmer/:farmer_id", (req: Request, res: Response) => {
+  const { farmer_id } = req.params;
+
+  if (!farmer_id) {
+    return res.status(400).json({ error: "farmer_id is required" });
+  }
+
+  const sql = `
+    SELECT 
+      l.like_id,
+      l.ref_farmers_id,
+      l.ref_bulls_id,
+      b.bulls_name,
+      b.bulls_breed,
+      b.bulls_characteristics,
+      bi.bulls_img_url AS bulls_image
+    FROM tb_farmers_like l
+    JOIN tb_bull_sires b ON l.ref_bulls_id = b.bulls_id
+    LEFT JOIN tb_bulls_img bi 
+      ON b.bulls_id = bi.ref_bulls_id 
+      AND bi.bulls_img_order = 1
+    WHERE l.ref_farmers_id = ?
+    ORDER BY l.like_id DESC
+  `;
+
+  conn.query(sql, [farmer_id], (err, rows: any) => {
+    if (err) {
+      console.error("Error fetching liked bulls:", err);
+      return res.status(500).json({ error: "Error fetching liked bulls" });
+    }
+    return res.status(200).json(rows);
+  });
+});
+
+
+// DELETE /like_bull/:like_id
+router.delete("/like_bull/:like_id", (req: Request, res: Response) => {
+  const { like_id } = req.params;
+
+  if (!like_id) {
+    return res.status(400).json({ error: "like_id is required" });
+  }
+
+  const sql = `DELETE FROM tb_farmers_like WHERE like_id = ?`;
+
+  conn.query(sql, [like_id], (err, result: any) => {
+    if (err) {
+      console.error("Error deleting like:", err);
+      return res.status(500).json({ error: "Error deleting like" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "ไม่พบรายการถูกใจนี้" });
+    }
+    return res.status(200).json({ message: "ลบรายการถูกใจสำเร็จ" });
+  });
+});

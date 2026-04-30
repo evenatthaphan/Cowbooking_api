@@ -1,4 +1,4 @@
-import { RowDataPacket } from "mysql2/typings/mysql/lib/protocol/packets/RowDataPacket";
+import { RowDataPacket } from "mysql2";
 
 export interface FarmerPostRequest {
     id: number;
@@ -275,11 +275,20 @@ export interface Adminsrequest {
   updated_at : string;
 }
 
-
-
 export interface BookingResult {
   id: number;
   status: string;
   vet_notes: string;
   updated_at: string;
+}
+
+export interface FarmerLike  extends RowDataPacket{
+  like_id: number;
+  ref_farmers_id: number;
+  ref_bulls_id: number;
+}
+
+export interface LikeRequestBody {
+  farmers_id: number;
+  bulls_id: number;
 }

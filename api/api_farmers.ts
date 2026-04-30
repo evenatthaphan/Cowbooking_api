@@ -486,7 +486,7 @@ router.get("/like_bull/farmer/:farmer_id", (req: Request, res: Response) => {
       b.bulls_name,
       b.bulls_breed,
       b.bulls_characteristics,
-      bi.bulls_img_url AS bulls_image
+      bi.bulls_image1 AS bulls_image
     FROM tb_farmers_like l
     JOIN tb_bull_sires b ON l.ref_bulls_id = b.bulls_id
     LEFT JOIN tb_bulls_img bi 

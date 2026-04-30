@@ -99,14 +99,14 @@ router.get("/stats/overview", (req: Request, res: Response) => {
 router.get("/stats/by-vet", (req: Request, res: Response) => {
   const sql = `
     SELECT 
-      v.vetexpert_id,
-      v.vetexpert_name,
+      v.vetexperts_id,
+      v.vetexperts_name,
       COUNT(*)                                          AS total,
       SUM(r.is_success)                                 AS success,
       COUNT(*) - SUM(r.is_success)                      AS failed,
       ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)      AS success_rate
     FROM tb_insemination_records r
-    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexpert_id
+    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexperts_id
     GROUP BY r.ref_vetexpert_id
     ORDER BY success_rate DESC
   `;
@@ -126,14 +126,14 @@ router.get("/stats/by-vet", (req: Request, res: Response) => {
 router.get("/stats/by-bull", (req: Request, res: Response) => {
   const sql = `
     SELECT 
-      b.bull_sire_id,
-      b.bull_name,
+      b.bulls_id,
+      b.bulls_name,
       COUNT(*)                                          AS total,
       SUM(r.is_success)                                 AS success,
       COUNT(*) - SUM(r.is_success)                      AS failed,
       ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)      AS success_rate
     FROM tb_insemination_records r
-    JOIN tb_bull_sires b ON r.ref_bull_sire_id = b.bull_sire_id
+    JOIN tb_bull_sires b ON r.ref_bull_sire_id = b.bulls_id
     GROUP BY r.ref_bull_sire_id
     ORDER BY success_rate DESC
   `;

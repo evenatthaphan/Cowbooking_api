@@ -3,50 +3,76 @@ import { conn, queryAsync } from "../dbconnect";
 
 const router = Router();
 
-// POST /insemination/record
-// บันทึกผลการผสมเทียม
+// POST record
 router.post("/record", async (req: Request, res: Response) => {
-  const { booking_id, vetexpert_id, bull_sire_id, farmer_id, farm_id, is_success, note } = req.body;
+  const { booking_id, is_success, note } = req.body;
 
   // validation
-  if (!booking_id)   return res.status(400).json({ error: "booking_id is required" });
-  if (!vetexpert_id) return res.status(400).json({ error: "vetexpert_id is required" });
-  if (!bull_sire_id) return res.status(400).json({ error: "bull_sire_id is required" });
-  if (!farmer_id)    return res.status(400).json({ error: "farmer_id is required" });
-  if (!farm_id)      return res.status(400).json({ error: "farm_id is required" });
+  if (!booking_id)          return res.status(400).json({ error: "booking_id is required" });
   if (is_success === undefined) return res.status(400).json({ error: "is_success is required" });
 
-  // เช็คว่า booking_id นี้บันทึกผลไปแล้วหรือยัง
-  const checkSql = `SELECT record_id FROM tb_insemination_records WHERE ref_booking_id = ?`;
+  // ดึงข้อมูลจาก tb_queue_bookings
+  const getBookingSql = `
+    SELECT 
+      queue_bookings_id,
+      ref_farmers_id,
+      ref_vetexperts_id,
+      ref_bulls_id,
+      bookings_status
+    FROM tb_queue_bookings 
+    WHERE queue_bookings_id = ?
+  `;
 
-  conn.query(checkSql, [booking_id], (err, rows: any) => {
-    if (err) return res.status(500).json({ error: "Error checking booking" });
-    if (rows.length > 0) return res.status(400).json({ error: "บันทึกผลการผสมนี้ไปแล้ว" });
+  conn.query(getBookingSql, [booking_id], (err, rows: any) => {
+    if (err)             return res.status(500).json({ error: "Error fetching booking" });
+    if (rows.length === 0) return res.status(404).json({ error: "ไม่พบข้อมูล booking นี้" });
 
-    const insertSql = `
-      INSERT INTO tb_insemination_records 
-        (ref_booking_id, ref_vetexpert_id, ref_bull_sire_id, ref_farmer_id, ref_farm_id, is_success, inseminated_at, confirmed_at, note)
-      VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)
-    `;
+    const booking = rows[0];
 
-    conn.query(
-      insertSql,
-      [booking_id, vetexpert_id, bull_sire_id, farmer_id, farm_id, is_success ? 1 : 0, note || null],
-      (err, result: any) => {
-        if (err) {
-          console.error("Error inserting record:", err);
-          return res.status(500).json({ error: "Error inserting record" });
+    // เช็คว่า status ต้อง accepted ถึงจะบันทึกผลได้
+    if (booking.bookings_status !== "accepted") {
+      return res.status(400).json({ error: "booking นี้ยังไม่ได้รับการยืนยัน" });
+    }
+
+    // เช็คว่าบันทึกผลไปแล้วหรือยัง
+    const checkSql = `SELECT record_id FROM tb_insemination_records WHERE ref_booking_id = ?`;
+
+    conn.query(checkSql, [booking_id], (err, rows: any) => {
+      if (err)           return res.status(500).json({ error: "Error checking record" });
+      if (rows.length > 0) return res.status(400).json({ error: "บันทึกผลการผสมนี้ไปแล้ว" });
+
+      const insertSql = `
+        INSERT INTO tb_insemination_records 
+          (ref_booking_id, ref_vetexpert_id, ref_bull_sire_id, ref_farmer_id, is_success, inseminated_at, confirmed_at, note)
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW(), ?)
+      `;
+
+      conn.query(
+        insertSql,
+        [
+          booking_id,
+          booking.ref_vetexperts_id,  // ดึงจาก booking เลย
+          booking.ref_bulls_id,        // ดึงจาก booking เลย
+          booking.ref_farmers_id,      // ดึงจาก booking เลย
+          is_success ? 1 : 0,
+          note || null,
+        ],
+        (err, result: any) => {
+          if (err) {
+            console.error("Error inserting record:", err);
+            return res.status(500).json({ error: "Error inserting record" });
+          }
+          return res.status(201).json({
+            message: "บันทึกผลการผสมสำเร็จ",
+            record_id: result.insertId,
+          });
         }
-        return res.status(201).json({
-          message: "บันทึกผลการผสมสำเร็จ",
-          record_id: result.insertId,
-        });
-      }
-    );
+      );
+    });
   });
 });
 
-// GET /insemination/stats/overview
+// GET stats/overview
 // ดึงสถิติรวมสำหรับ Dashboard
 router.get("/stats/overview", (req: Request, res: Response) => {
   const sql = `
@@ -68,7 +94,7 @@ router.get("/stats/overview", (req: Request, res: Response) => {
 });
 
 
-// GET /insemination/stats/by-vet
+// GET /stats/by-vet
 // ดึงสถิติแยกตามหมอ
 router.get("/stats/by-vet", (req: Request, res: Response) => {
   const sql = `
@@ -95,7 +121,7 @@ router.get("/stats/by-vet", (req: Request, res: Response) => {
 });
 
 
-// GET /insemination/stats/by-bull
+// GET /stats/by-bull
 // ดึงสถิติแยกตามน้ำเชื้อวัว
 router.get("/stats/by-bull", (req: Request, res: Response) => {
   const sql = `

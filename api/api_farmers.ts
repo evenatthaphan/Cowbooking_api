@@ -418,3 +418,54 @@ router.get("/locations/localities/:province/:district", (req, res) => {
     res.json(result.map((row: any) => row.locality));
   });
 });
+
+
+// insert like
+router.post("/like_bull", async (req: Request, res: Response) => {
+  console.log("req.body:", req.body);
+
+  const { farmers_id, bulls_id } = req.body;
+
+  // validation
+  if (!farmers_id) {
+    return res.status(400).json({ error: "farmers_id is required" });
+  }
+  if (!bulls_id) {
+    return res.status(400).json({ error: "bulls_id is required" });
+  }
+
+  // เช็คว่ากดถูกใจวัวตัวนี้ไปแล้วหรือยัง
+  const checkLikeSql = `
+    SELECT like_id FROM tb_farmers_like 
+    WHERE ref_farmers_id = ? AND ref_bulls_id = ?
+  `;
+
+  conn.query(checkLikeSql, [farmers_id, bulls_id], (err, rows) => {
+    if (err) {
+      console.error("Error checking like:", err);
+      return res.status(500).json({ error: "Error checking like" });
+    }
+
+    if (rows.length > 0) {
+      return res.status(400).json({ error: "คุณกดถูกใจวัวตัวนี้ไปแล้ว" });
+    }
+
+    // insert like
+    const insertSql = `
+      INSERT INTO tb_farmers_like (ref_farmers_id, ref_bulls_id)
+      VALUES (?, ?)
+    `;
+
+    conn.query(insertSql, [farmers_id, bulls_id], (err, result) => {
+      if (err) {
+        console.error("Error inserting like:", err);
+        return res.status(500).json({ error: "Error inserting like" });
+      }
+
+      return res.status(201).json({
+        message: "กดถูกใจวัวสำเร็จ",
+        like_id: result.insertId,
+      });
+    });
+  });
+});

@@ -491,7 +491,7 @@ router.get("/like_bull/farmer/:farmer_id", (req: Request, res: Response) => {
     JOIN tb_bull_sires b ON l.ref_bulls_id = b.bulls_id
     LEFT JOIN tb_bulls_img bi 
       ON b.bulls_id = bi.ref_bulls_id 
-      AND bi.bulls_img_order = 1
+      AND bi.bulls_image1 IS NOT NULL
     WHERE l.ref_farmers_id = ?
     ORDER BY l.like_id DESC
   `;

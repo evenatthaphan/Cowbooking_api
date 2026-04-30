@@ -1,7 +1,7 @@
-import { Router, Request, Response } from "express";
+import express,{ Router, Request, Response } from "express";
 import { conn, queryAsync } from "../dbconnect";
 
-const router = Router();
+export const router = express.Router();
 
 // POST record
 router.post("/record", async (req: Request, res: Response) => {
@@ -146,5 +146,3 @@ router.get("/stats/by-bull", (req: Request, res: Response) => {
     return res.status(200).json(rows);
   });
 });
-
-export default router;

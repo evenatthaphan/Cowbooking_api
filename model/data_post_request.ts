@@ -1,4 +1,4 @@
-import { RowDataPacket } from "mysql2";
+import { RowDataPacket, OkPacket } from "mysql2";
 
 export interface FarmerPostRequest {
     id: number;
@@ -291,4 +291,53 @@ export interface FarmerLike  extends RowDataPacket{
 export interface LikeRequestBody {
   farmers_id: number;
   bulls_id: number;
+}
+
+
+export interface InseminationRequestBody {
+  booking_id: number;
+  vetexpert_id: number;
+  bull_sire_id: number;
+  farmer_id: number;
+  farm_id: number;
+  is_success: boolean;
+  note?: string; // optional
+}
+
+export interface InseminationRecord extends RowDataPacket {
+  record_id: number;
+  ref_booking_id: number;
+  ref_vetexpert_id: number;
+  ref_bull_sire_id: number;
+  ref_farmer_id: number;
+  ref_farm_id: number;
+  is_success: number; // 0 | 1
+  inseminated_at: Date;
+  confirmed_at: Date | null;
+  note: string | null;
+}
+
+export interface OverviewStats extends RowDataPacket {
+  total: number;
+  success: number;
+  failed: number;
+  success_rate: number;
+}
+
+export interface StatsByVet extends RowDataPacket {
+  vetexpert_id: number;
+  vetexpert_name: string;
+  total: number;
+  success: number;
+  failed: number;
+  success_rate: number;
+}
+
+export interface StatsByBull extends RowDataPacket {
+  bull_sire_id: number;
+  bull_name: string;
+  total: number;
+  success: number;
+  failed: number;
+  success_rate: number;
 }

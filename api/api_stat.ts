@@ -240,7 +240,7 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
       b.bulls_id,
       b.bulls_name,
       b.bulls_breed,
-      bi.bulls_img_url AS bulls_image,
+      bi.bulls_image1 AS bulls_image,
       COUNT(*)                                      AS total,
       SUM(r.is_success)                             AS success,
       ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)  AS success_rate

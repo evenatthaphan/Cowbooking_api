@@ -150,7 +150,7 @@ router.get("/stats/by-bull", (req: Request, res: Response) => {
 
 // GET /insemination/stats/my-overview/:farmer_id
 // สถิติรวมเฉพาะของเกษตรกรคนนั้น
-router.get("/insemination/stats/my-overview/:farmer_id", (req: Request, res: Response) => {
+router.get("/insemination/my-overview/:farmer_id", (req: Request, res: Response) => {
   const { farmer_id } = req.params;
 
   const sql = `
@@ -180,7 +180,7 @@ router.get("/insemination/my-by-vet/:farmer_id", (req: Request, res: Response) =
 
   const sql = `
     SELECT 
-      v.vetexpert_id,
+      v.vetexperts_id,
       v.vetexperts_name AS vetexpert_name,
       COUNT(*)                                        AS total,
       SUM(r.is_success)                               AS success,

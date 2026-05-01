@@ -274,15 +274,21 @@ router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res
 
     console.log("SQL:", sql); // debug
 
-    conn.query(sql, (err, result) => {
+    conn.query(sql, async (err, result) => {
       if (err) {
         console.error("SQL Error:", err);
         return res.status(500).json({ error: "SQL Error" });
       }
+
+      // ดึงข้อมูลล่าสุดกลับไปให้ Flutter
+      const selectSql = mysql.format(
+        "SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]
+      );
+      const updatedResult = await queryAsync(selectSql) as any[];
+
       res.status(200).json({
         message: "Profile updated successfully",
-        affected_row: (result as any).affectedRows,
-        profile_image: farmer.profile_image ?? farmerOriginal.profile_image,
+        farmer: updatedResult[0], // ส่งข้อมูลล่าสุดกลับไป
       });
     });
   } catch (err) {

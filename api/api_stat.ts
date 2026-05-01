@@ -248,7 +248,7 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
     JOIN tb_bull_sires b  ON r.ref_bull_sire_id = b.bulls_id
     LEFT JOIN tb_bulls_img bi 
       ON b.bulls_id = bi.ref_bulls_id 
-      AND bi.bulls_img_order = 1
+      AND bi.bulls_image1 IS NOT NULL
     GROUP BY r.ref_bull_sire_id
     ORDER BY success_rate DESC
     LIMIT 3

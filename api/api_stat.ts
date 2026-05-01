@@ -148,7 +148,7 @@ router.get("/stats/by-bull", (req: Request, res: Response) => {
 });
 
 
-// GET /insemination/stats/my-overview/:farmer_id
+// GET /insemination/my-overview/:farmer_id
 // สถิติรวมเฉพาะของเกษตรกรคนนั้น
 router.get("/insemination/my-overview/:farmer_id", (req: Request, res: Response) => {
   const { farmer_id } = req.params;
@@ -227,6 +227,37 @@ router.get("/insemination/my-by-bull/:farmer_id", (req: Request, res: Response) 
     if (err) {
       console.error("Error fetching my stats by bull:", err);
       return res.status(500).json({ error: "Error fetching my stats by bull" });
+    }
+    return res.status(200).json(rows);
+  });
+});
+
+// GET /insemination/stats/top-bulls
+// ดึงวัว Top 3 ที่มีอัตราผสมสำเร็จสูงสุด
+router.get("/insemination/top-bulls", (req: Request, res: Response) => {
+  const sql = `
+    SELECT 
+      b.bulls_id,
+      b.bulls_name,
+      b.bulls_breed,
+      bi.bulls_img_url AS bulls_image,
+      COUNT(*)                                      AS total,
+      SUM(r.is_success)                             AS success,
+      ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)  AS success_rate
+    FROM tb_insemination_records r
+    JOIN tb_bull_sires b  ON r.ref_bull_sire_id = b.bulls_id
+    LEFT JOIN tb_bulls_img bi 
+      ON b.bulls_id = bi.ref_bulls_id 
+      AND bi.bulls_img_order = 1
+    GROUP BY r.ref_bull_sire_id
+    ORDER BY success_rate DESC
+    LIMIT 3
+  `;
+
+  conn.query(sql, (err, rows: any) => {
+    if (err) {
+      console.error("Error fetching top bulls:", err);
+      return res.status(500).json({ error: "Error fetching top bulls" });
     }
     return res.status(200).json(rows);
   });

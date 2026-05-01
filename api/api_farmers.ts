@@ -186,12 +186,62 @@ router.post("/register", async (req: Request, res: Response) => {
 
 
 // edit profile *****
+// router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
+//   try {
+//     const id = +req.params.id;
+//     let farmer: FarmerPostRequest = req.body;
+
+//     // กำหนด type ให้ result 
+//     let sql = mysql.format("SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]);
+//     let result = await queryAsync(sql) as FarmerPostRequest[];
+
+//     if (result.length === 0) {
+//       return res.status(404).json({ error: "Farmer not found" });
+//     }
+//     const farmerOriginal = result[0];
+
+//     // อัพโหลดรูปใหม่ถ้ามี
+//     if (req.file) {
+//       const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "farmers_profile",
+//       });
+//       farmer.profile_image = uploadResult.secure_url;
+//     }
+
+//     const updatedFarmer = { ...farmerOriginal, ...farmer };
+
+//     sql =
+//       "UPDATE `tb_farmers` SET `farmers_name`=?, `farmers_phonenumber`=?, `farmers_email`=?, `farmers_profile_image`=?,  WHERE `farmers_id`=?";
+//     sql = mysql.format(sql, [
+//       updatedFarmer.farm_name,
+//       updatedFarmer.phonenumber,
+//       updatedFarmer.farmer_email,
+//       updatedFarmer.profile_image,
+//       id,
+//     ]);
+
+//     conn.query(sql, (err, result) => {
+//       if (err) throw err;
+//       res.status(200).json({
+//         message: "Profile updated successfully",
+//         affected_row: (result as any).affectedRows,
+//         profile_image: updatedFarmer.profile_image,
+//       });
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Update failed" });
+//   }
+// });
+
 router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
   try {
     const id = +req.params.id;
     let farmer: FarmerPostRequest = req.body;
 
-    // กำหนด type ให้ result 
+    console.log("body:", req.body);   // debug
+    console.log("file:", req.file);   // debug
+
     let sql = mysql.format("SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]);
     let result = await queryAsync(sql) as FarmerPostRequest[];
 
@@ -210,22 +260,29 @@ router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res
 
     const updatedFarmer = { ...farmerOriginal, ...farmer };
 
-    sql =
-      "UPDATE `tb_farmers` SET `farmers_name`=?, `farmers_phonenumber`=?, `farmers_email`=?, `farmers_profile_image`=?,  WHERE `farmers_id`=?";
-    sql = mysql.format(sql, [
-      updatedFarmer.farm_name,
-      updatedFarmer.phonenumber,
-      updatedFarmer.farmer_email,
-      updatedFarmer.profile_image,
-      id,
-    ]);
+    // 
+    sql = mysql.format(
+      "UPDATE `tb_farmers` SET `farmers_name`=?, `farmers_phonenumber`=?, `farmers_email`=?, `farmers_profile_image`=? WHERE `farmers_id`=?",
+      [
+        farmer.farm_name       ?? farmerOriginal.farm_name,
+        farmer.phonenumber     ?? farmerOriginal.phonenumber,
+        farmer.farmer_email    ?? farmerOriginal.farmer_email,
+        farmer.profile_image   ?? farmerOriginal.profile_image,
+        id,
+      ]
+    );
+
+    console.log("SQL:", sql); // debug
 
     conn.query(sql, (err, result) => {
-      if (err) throw err;
+      if (err) {
+        console.error("SQL Error:", err);
+        return res.status(500).json({ error: "SQL Error" });
+      }
       res.status(200).json({
         message: "Profile updated successfully",
         affected_row: (result as any).affectedRows,
-        profile_image: updatedFarmer.profile_image,
+        profile_image: farmer.profile_image ?? farmerOriginal.profile_image,
       });
     });
   } catch (err) {

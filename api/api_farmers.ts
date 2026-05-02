@@ -82,7 +82,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
   // เช็คชื่อซ้ำ
   const checkFarmNameSql =
-    "SELECT id FROM tb_farmers WHERE farmers_name = ?";
+    "SELECT farmers_id FROM tb_farmers WHERE farmers_name = ?";
 
   conn.query(checkFarmNameSql, [Farmer.farm_name], (err, rows) => {
     if (err) {

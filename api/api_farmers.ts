@@ -132,7 +132,7 @@ router.post("/register", async (req: Request, res: Response) => {
             INSERT INTO tb_farmers 
               (
                 farmers_name,
-                farmes_hashpassword,
+                farmers_hashpassword,
                 farmers_password,
                 farmers_phonenumber,
                 farmers_email,

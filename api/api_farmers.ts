@@ -140,7 +140,7 @@ router.post("/register", async (req: Request, res: Response) => {
                 farmers_address,
                 farmers_province,
                 farmers_district,
-                farners_locality              
+                farmers_locality              
               )
             VALUES (?, ?, ?, ?, ?, 
               'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',

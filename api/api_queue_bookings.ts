@@ -41,7 +41,7 @@ router.post("/queue/book", async (req, res) => {
     // insert queue
     const sqlInsert = `
       INSERT INTO tb_queue_bookings
-      ( ref_farmers_id, ref_vetexperts_id, ref_bulls_id, schedules_id, dose, detailBull, status, vet_notes, created_at, updated_at)
+      ( ref_farmers_id, ref_vetexperts_id, ref_bulls_id, ref_schedules_id, bookings_dose, bookings_detail_bull, bookings_status, bookings_vet_notes, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -59,7 +59,7 @@ router.post("/queue/book", async (req, res) => {
     ]);
 
     // update status vet_schedules that is_booked = true
-    await queryAsync("UPDATE Vet_schedules SET is_booked = true WHERE id = ?", [
+    await queryAsync("UPDATE tb_vet_schedules SET schedules_is_booked = true WHERE schedules_id = ?", [
       schedule_id,
     ]);
 

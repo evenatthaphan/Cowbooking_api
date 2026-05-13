@@ -117,6 +117,24 @@ router.get("/bookings/farmer", async (req, res) => {
   try {
     const { farmer_id, vet_expert_id } = req.query;
 
+    // let sql = `
+    //   SELECT 
+    //     b.queue_bookings_id,
+    //     b.ref_farmers_id,
+    //     b.ref_vetexperts_id,
+    //     b.ref_bulls_id,
+    //     b.ref_schedules_id,
+    //     b.bookings_detail_bull,
+    //     b.bookings_status,
+    //     b.bookings_vet_notes,
+    //     b.created_at,
+    //     b.updated_at,
+    //     f.farmers_name AS farmers_name,
+    //     v.vetexperts_name AS vetexperts_name
+    //   FROM tb_queue_bookings b
+    //   LEFT JOIN tb_farmers f ON b.ref_farmers_id = f. farmers_id
+    //   LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
+    // `;
     let sql = `
       SELECT 
         b.queue_bookings_id,
@@ -130,10 +148,13 @@ router.get("/bookings/farmer", async (req, res) => {
         b.created_at,
         b.updated_at,
         f.farmers_name AS farmers_name,
-        v.vetexperts_name AS vetexperts_name
+        v.vetexperts_name AS vetexperts_name,
+        r.record_id AS record_id,
+        r.is_success AS is_success
       FROM tb_queue_bookings b
-      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f. farmers_id
+      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f.farmers_id
       LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
+      LEFT JOIN tb_insemination_records r ON b.queue_bookings_id = r.ref_booking_id
     `;
 
     const params = [];

@@ -1,4 +1,8 @@
 firebase-adminsdk.json
 node_modules/
 dist/
+<<<<<<< HEAD
 .env"*.hprof" 
+=======
+.env
+>>>>>>> ed85070e6102d9d97402cf048f93aeb3fe3394c7

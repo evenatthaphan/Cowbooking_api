@@ -117,7 +117,6 @@ router.get("/bookings/farmer", async (req, res) => {
   try {
     const { farmer_id, vet_expert_id } = req.query;
 
-<<<<<<< HEAD
     // let sql = `
     //   SELECT 
     //     b.queue_bookings_id,
@@ -136,8 +135,6 @@ router.get("/bookings/farmer", async (req, res) => {
     //   LEFT JOIN tb_farmers f ON b.ref_farmers_id = f. farmers_id
     //   LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
     // `;
-=======
->>>>>>> ed85070e6102d9d97402cf048f93aeb3fe3394c7
     let sql = `
       SELECT 
         b.queue_bookings_id,
@@ -151,7 +148,6 @@ router.get("/bookings/farmer", async (req, res) => {
         b.created_at,
         b.updated_at,
         f.farmers_name AS farmers_name,
-<<<<<<< HEAD
         v.vetexperts_name AS vetexperts_name,
         r.record_id AS record_id,
         r.is_success AS is_success
@@ -159,12 +155,6 @@ router.get("/bookings/farmer", async (req, res) => {
       LEFT JOIN tb_farmers f ON b.ref_farmers_id = f.farmers_id
       LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
       LEFT JOIN tb_insemination_records r ON b.queue_bookings_id = r.ref_booking_id
-=======
-        v.vetexperts_name AS vetexperts_name
-      FROM tb_queue_bookings b
-      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f. farmers_id
-      LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
->>>>>>> ed85070e6102d9d97402cf048f93aeb3fe3394c7
     `;
 
     const params = [];

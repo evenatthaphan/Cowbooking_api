@@ -410,3 +410,174 @@ router.get("/get/schedule/:id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+//insert bull by vetexpert
+router.post(
+  "/bulls/create",
+  upload.array("images", 5),
+
+  async (req: any, res) => {
+    try {
+      const {
+        // farm
+        frams_name,
+        frams_province,
+        frams_district,
+        frams_locality,
+        frams_address,
+        frams_lat,
+        frams_long,
+
+        // bull
+        bulls_name,
+        bulls_breed,
+        bulls_age,
+        bulls_characteristics,
+        bulls_contest_records,
+        bulls_HealthStatus,
+
+        // vet
+        vet_id,
+      } = req.body;
+
+
+      // upload images cloudinary
+      const files = req.files as Express.Multer.File[];
+
+      const imageUrls: string[] = [];
+
+      for (const file of files) {
+        const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+        const result = await cloudinary.uploader.upload(
+          base64,
+          {
+            folder: "bulls",
+          }
+        );
+
+        imageUrls.push(result.secure_url);
+      }
+
+      // insert farm
+      const farmSql = `
+        INSERT INTO tb_farms (
+          frams_name,
+          frams_province,
+          frams_district,
+          frams_locality,
+          frams_address,
+          frams_lat,
+          frams_long
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const farmResult: any = await queryAsync(
+        farmSql,
+        [
+          frams_name,
+          frams_province,
+          frams_district,
+          frams_locality,
+          frams_address,
+          frams_lat || null,
+          frams_long || null,
+        ]
+      );
+
+      const farmId = farmResult.insertId;
+
+
+      // insert bull
+      const bullSql = `
+        INSERT INTO tb_bull_sires (
+          bulls_name,
+          bulls_breed,
+          bulls_age,
+          bulls_characteristics,
+          ref_farm_id,
+          bulls_contest_records,
+          bulls_HealthStatus
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const bullResult: any = await queryAsync(
+        bullSql,
+        [
+          bulls_name,
+          bulls_breed,
+          bulls_age,
+          bulls_characteristics,
+          farmId,
+          bulls_contest_records,
+          bulls_HealthStatus,
+        ]
+      );
+
+      const bullId = bullResult.insertId;
+
+      // insert image
+      const imageSql = `
+        INSERT INTO tb_bulls_img (
+          ref_bulls_id,
+          bulls_image1,
+          bulls_image2,
+          bulls_image3,
+          bulls_image4,
+          bulls_image5
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+
+      await queryAsync(
+        imageSql,
+        [
+          bullId,
+
+          imageUrls[0] || null,
+          imageUrls[1] || null,
+          imageUrls[2] || null,
+          imageUrls[3] || null,
+          imageUrls[4] || null,
+        ]
+      );
+
+      // insert vet relation
+      const vetSql = `
+        INSERT INTO tb_vet_bulls (
+          ref_vetexperts_id,
+          ref_bulls_id,
+          bulls_price_per_dose,
+          bulls_semen_stock
+        )
+        VALUES (?, ?, 0, 0)
+      `;
+
+      await queryAsync(
+        vetSql,
+        [
+          vet_id,
+          bullId,
+        ]
+      );
+
+      // success
+
+      res.status(201).json({
+        message: "Create bull success",
+        bull_id: bullId,
+        images: imageUrls,
+      });
+
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  }
+);

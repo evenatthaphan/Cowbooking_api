@@ -224,48 +224,142 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
     const { booking_id } = req.params;
     const { status, vet_notes } = req.body;
 
-    // check status
     if (!status || !["accepted", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    // use query and send vet_notes
     const statusLower = (status as string).toLowerCase();
 
-    if (!["accepted", "rejected"].includes(statusLower)) {
-      return res.status(400).json({ error: "Invalid status value" });
-    }
+    // ดึงข้อมูล booking ก่อน เพื่อเอา dose และ bull_id
+    const bookings: any = await queryAsync(
+      `SELECT bookings_dose, ref_bulls_id FROM tb_queue_bookings WHERE queue_bookings_id = ?`,
+      [booking_id]
+    );
 
-    const sql = `
-  UPDATE tb_queue_bookings
-  SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
-  WHERE queue_bookings_id = ?
-`;
-
-    const result = await queryAsync(sql, [
-      statusLower,
-      vet_notes || null,
-      booking_id,
-    ]);
-
-    if ((result as any).affectedRows === 0) {
+    if (bookings.length === 0) {
       return res.status(404).json({ error: "Booking not found" });
     }
 
-    return res
-      .status(200)
-      .json({ message: "Booking status and notes updated successfully" });
+    const { bookings_dose, ref_bulls_id } = bookings[0];
+
+    // เริ่ม Transaction
+    await queryAsync("START TRANSACTION");
+
+    try {
+      // update สถานะ booking
+      const updateBooking = await queryAsync(
+        `UPDATE tb_queue_bookings
+         SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
+         WHERE queue_bookings_id = ?`,
+        [statusLower, vet_notes || null, booking_id]
+      ) as any;
+
+      if (updateBooking.affectedRows === 0) {
+        await queryAsync("ROLLBACK");
+        return res.status(404).json({ error: "Booking not found" });
+      }
+
+      // ถ้า accepted และมี bull_id และ dose → ลดจำนวนโดส
+      if (statusLower === "accepted" && ref_bulls_id && bookings_dose) {
+       // ตรวจว่าโดสเพียงพอก่อน
+        const bulls: any = await queryAsync(
+          `SELECT bulls_semen_stock FROM tb_vet_bulls WHERE ref_bulls_id = ?`,  
+          [ref_bulls_id]
+        );
+
+        if (bulls.length === 0) {
+          await queryAsync("ROLLBACK");
+          return res.status(404).json({ error: "Bull not found" });
+        }
+
+        const currentDose = bulls[0].bulls_semen_stock;  // ✅ แก้ตรงนี้
+
+        if (currentDose < bookings_dose) {
+          await queryAsync("ROLLBACK");
+          return res.status(400).json({
+            error: "Insufficient dose available",
+            available: currentDose,
+            requested: bookings_dose,
+          });
+        }
+
+        // ลดโดส
+        await queryAsync(
+          `UPDATE tb_vet_bulls SET bulls_semen_stock = bulls_semen_stock - ? WHERE ref_bulls_id = ?`,  // ✅ แก้ตรงนี้
+          [bookings_dose, ref_bulls_id]
+        );
+      }
+
+      await queryAsync("COMMIT");
+
+      return res.status(200).json({
+        message: "Booking status and notes updated successfully",
+        ...(statusLower === "accepted" && ref_bulls_id && bookings_dose
+          ? { dose_deducted: bookings_dose }
+          : {}),
+      });
+
+    } catch (innerErr) {
+      await queryAsync("ROLLBACK");
+      throw innerErr;
+    }
+
   } catch (err: any) {
-    console.error(
-      "Error updating booking:",
-      err.sqlMessage || err.message || err
-    );
+    console.error("Error updating booking:", err.sqlMessage || err.message || err);
     return res.status(500).json({
       error: "Internal server error",
       details: err.sqlMessage || err.message,
     });
   }
 });
+
+// router.put("/bookings/update/:booking_id", async (req, res) => {
+//   try {
+//     const { booking_id } = req.params;
+//     const { status, vet_notes } = req.body;
+
+//     // check status
+//     if (!status || !["accepted", "rejected"].includes(status)) {
+//       return res.status(400).json({ error: "Invalid status value" });
+//     }
+
+//     // use query and send vet_notes
+//     const statusLower = (status as string).toLowerCase();
+
+//     if (!["accepted", "rejected"].includes(statusLower)) {
+//       return res.status(400).json({ error: "Invalid status value" });
+//     }
+
+//     const sql = `
+//   UPDATE tb_queue_bookings
+//   SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
+//   WHERE queue_bookings_id = ?
+// `;
+
+//     const result = await queryAsync(sql, [
+//       statusLower,
+//       vet_notes || null,
+//       booking_id,
+//     ]);
+
+//     if ((result as any).affectedRows === 0) {
+//       return res.status(404).json({ error: "Booking not found" });
+//     }
+
+//     return res
+//       .status(200)
+//       .json({ message: "Booking status and notes updated successfully" });
+//   } catch (err: any) {
+//     console.error(
+//       "Error updating booking:",
+//       err.sqlMessage || err.message || err
+//     );
+//     return res.status(500).json({
+//       error: "Internal server error",
+//       details: err.sqlMessage || err.message,
+//     });
+//   }
+// });
 
 
 

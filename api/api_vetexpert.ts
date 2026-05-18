@@ -581,3 +581,22 @@ router.post(
     }
   }
 );
+
+
+// total stock of semen for vet expert
+router.get("/vet-bulls/total-stock/:vet_id", async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+
+    const result: any = await queryAsync(
+      `SELECT COALESCE(SUM(bulls_semen_stock), 0) AS total_stock
+       FROM tb_vet_bulls
+       WHERE ref_vetexperts_id = ?`,
+      [vet_id]
+    );
+
+    return res.status(200).json({ total_stock: result[0].total_stock });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});

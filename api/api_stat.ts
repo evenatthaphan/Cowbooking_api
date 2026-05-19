@@ -265,21 +265,25 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
 
 
 // GET /insemination/my-overview/:Vetexport_id
-// สถิติรวมเฉพาะของเกษตรกรคนนั้น
-router.get("/insemination/my-overview/:Vetexport_id", (req: Request, res: Response) => {
-  const { Vetexport_id } = req.params;
+router.get("/insemination/my-overview/:vetexpert_id", (req: Request, res: Response) => {
+  const { vetexpert_id } = req.params;
+
+  // กัน NaN ก่อน query
+  if (!vetexpert_id || isNaN(Number(vetexpert_id))) {
+    return res.status(400).json({ error: "Invalid vetexpert_id" });
+  }
 
   const sql = `
     SELECT 
-      COUNT(*)                                        AS total,
-      SUM(is_success)                                 AS success,
-      COUNT(*) - SUM(is_success)                      AS failed,
-      ROUND(SUM(is_success) / COUNT(*) * 100, 2)      AS success_rate
+      COUNT(*)                                                   AS total,
+      COALESCE(SUM(is_success), 0)                              AS success,
+      COUNT(*) - COALESCE(SUM(is_success), 0)                   AS failed,
+      ROUND(SUM(is_success) / NULLIF(COUNT(*), 0) * 100, 2)     AS success_rate
     FROM tb_insemination_records
     WHERE ref_vetexpert_id = ?
   `;
 
-  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+  conn.query(sql, [vetexpert_id], (err, rows: any) => {
     if (err) {
       console.error("Error fetching my overview:", err);
       return res.status(500).json({ error: "Error fetching my overview" });
@@ -288,9 +292,30 @@ router.get("/insemination/my-overview/:Vetexport_id", (req: Request, res: Respon
   });
 });
 
+// router.get("/insemination/my-overview/:Vetexport_id", (req: Request, res: Response) => {
+//   const { Vetexport_id } = req.params;
+
+//   const sql = `
+//     SELECT 
+//       COUNT(*)                                        AS total,
+//       SUM(is_success)                                 AS success,
+//       COUNT(*) - SUM(is_success)                      AS failed,
+//       ROUND(SUM(is_success) / COUNT(*) * 100, 2)      AS success_rate
+//     FROM tb_insemination_records
+//     WHERE ref_vetexpert_id = ?
+//   `;
+
+//   conn.query(sql, [Vetexport_id], (err, rows: any) => {
+//     if (err) {
+//       console.error("Error fetching my overview:", err);
+//       return res.status(500).json({ error: "Error fetching my overview" });
+//     }
+//     return res.status(200).json(rows[0]);
+//   });
+// });
+
 
 // GET /insemination/stats/my-by-vet/:Vetexport_id
-// สถิติแยกตามหมอ เฉพาะของเกษตรกรคนนั้น
 router.get("/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response) => {
   const { Vetexport_id } = req.params;
 
@@ -320,7 +345,6 @@ router.get("/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response
 
 
 // GET /insemination/stats/my-by-bull/:Vetexport_id
-// สถิติแยกตามน้ำเชื้อวัว เฉพาะของเกษตรกรคนนั้น
 router.get("/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Response) => {
   const { Vetexport_id } = req.params;
 

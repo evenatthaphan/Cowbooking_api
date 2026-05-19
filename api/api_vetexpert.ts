@@ -584,20 +584,27 @@ router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
     const { vet_id } = req.params;
     const { old_password, new_password } = req.body;
 
-    // ตรวจ password เดิมก่อน
     const rows: any = await queryAsync(
-      "SELECT vetexperts_password FROM tb_vetexperts WHERE vetexperts_id = ?",
+      "SELECT vetexperts_hashpassword FROM tb_vetexperts WHERE vetexperts_id = ?",
       [vet_id]
     );
+
     if (rows.length === 0) return res.status(404).json({ error: "Vet not found" });
-    if (rows[0].vetexperts_password !== old_password) {
+
+    // เช็ครหัสเดิมกับ hash
+    const isMatch = await bcrypt.compare(old_password, rows[0].vetexperts_hashpassword);
+    if (!isMatch) {
       return res.status(400).json({ error: "รหัสผ่านเดิมไม่ถูกต้อง" });
     }
 
+    // hash รหัสใหม่ก่อนบันทึก
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
     await queryAsync(
-      "UPDATE tb_vetexperts SET vetexperts_password = ? WHERE vetexperts_id = ?",
-      [new_password, vet_id]
+      "UPDATE tb_vetexperts SET vetexperts_hashpassword = ? WHERE vetexperts_id = ?",
+      [hashedPassword, vet_id]
     );
+
     return res.status(200).json({ message: "Password changed successfully" });
   } catch (err: any) {
     return res.status(500).json({ error: "Internal server error", details: err.message });

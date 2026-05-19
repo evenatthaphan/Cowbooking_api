@@ -272,7 +272,7 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
           return res.status(404).json({ error: "Bull not found" });
         }
 
-        const currentDose = bulls[0].bulls_semen_stock;  // ✅ แก้ตรงนี้
+        const currentDose = bulls[0].bulls_semen_stock; 
 
         if (currentDose < bookings_dose) {
           await queryAsync("ROLLBACK");
@@ -399,5 +399,45 @@ router.delete("/queue/cancel/:booking_id", async (req, res) => {
       error: "Internal server error",
       details: err.sqlMessage || err.message,
     });
+  }
+});
+
+// get all booking for a specific farmer ***
+router.get("/bookings/farmer/:farmer_id", async (req, res) => {
+  try {
+    const { farmer_id } = req.params;
+
+    const sql = `
+      SELECT 
+        b.queue_bookings_id AS queue_bookings_id,
+        b.ref_farmers_id,
+        f.farmers_name AS farmers_name,
+        b.ref_vetexperts_id,
+        v.vetexperts_name AS vetexperts_name,
+        b.ref_bulls_id AS ref_bulls_id,
+        bs.bulls_name AS bulls_name,
+        bs.bulls_breed AS bulls_breed,
+        b.bookings_dose AS bookings_dose,
+        s.schedules_available_date AS schedule_date,
+        s.schedules_available_time AS schedule_time,
+        b.bookings_detail_bull,
+        b.bookings_status,
+        b.bookings_vet_notes,
+        b.created_at
+      FROM tb_queue_bookings b
+      LEFT JOIN tb_farmers f ON b.ref_farmers_id = f.farmers_id
+      LEFT JOIN tb_vetexperts v ON b.ref_vetexperts_id = v.vetexperts_id
+      LEFT JOIN tb_vet_schedules s ON b.ref_schedules_id = s.schedules_id
+      LEFT JOIN tb_vet_bulls vb ON b.ref_bulls_id = vb.vet_bulls_id
+      LEFT JOIN tb_bull_sires bs ON vb.ref_bulls_id = bs.bulls_id
+      WHERE b.ref_farmers_id = ?       
+      ORDER BY b.created_at DESC
+    `;
+
+    const results = await queryAsync(sql, [farmer_id]);  
+    return res.status(200).json(results);
+  } catch (err) {
+    console.error("Error fetching farmer bookings:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });

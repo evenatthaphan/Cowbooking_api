@@ -262,3 +262,88 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
     return res.status(200).json(rows);
   });
 });
+
+
+// GET /insemination/my-overview/:Vetexport_id
+// สถิติรวมเฉพาะของเกษตรกรคนนั้น
+router.get("/insemination/my-overview/:Vetexport_id", (req: Request, res: Response) => {
+  const { Vetexport_id } = req.params;
+
+  const sql = `
+    SELECT 
+      COUNT(*)                                        AS total,
+      SUM(is_success)                                 AS success,
+      COUNT(*) - SUM(is_success)                      AS failed,
+      ROUND(SUM(is_success) / COUNT(*) * 100, 2)      AS success_rate
+    FROM tb_insemination_records
+    WHERE ref_vetexpert_id = ?
+  `;
+
+  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+    if (err) {
+      console.error("Error fetching my overview:", err);
+      return res.status(500).json({ error: "Error fetching my overview" });
+    }
+    return res.status(200).json(rows[0]);
+  });
+});
+
+
+// GET /insemination/stats/my-by-vet/:Vetexport_id
+// สถิติแยกตามหมอ เฉพาะของเกษตรกรคนนั้น
+router.get("/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response) => {
+  const { Vetexport_id } = req.params;
+
+  const sql = `
+    SELECT 
+      v.vetexperts_id,
+      v.vetexperts_name AS vetexpert_name,
+      COUNT(*)                                        AS total,
+      SUM(r.is_success)                               AS success,
+      COUNT(*) - SUM(r.is_success)                    AS failed,
+      ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)    AS success_rate
+    FROM tb_insemination_records r
+    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexpert_id
+    WHERE r.ref_vetexpert_id = ?
+    GROUP BY r.ref_vetexpert_id
+    ORDER BY success_rate DESC
+  `;
+
+  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+    if (err) {
+      console.error("Error fetching my stats by vet:", err);
+      return res.status(500).json({ error: "Error fetching my stats by vet" });
+    }
+    return res.status(200).json(rows);
+  });
+});
+
+
+// GET /insemination/stats/my-by-bull/:Vetexport_id
+// สถิติแยกตามน้ำเชื้อวัว เฉพาะของเกษตรกรคนนั้น
+router.get("/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Response) => {
+  const { Vetexport_id } = req.params;
+
+  const sql = `
+    SELECT 
+      b.bulls_id        AS bull_sire_id,
+      b.bulls_name      AS bull_name,
+      COUNT(*)                                        AS total,
+      SUM(r.is_success)                               AS success,
+      COUNT(*) - SUM(r.is_success)                    AS failed,
+      ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)    AS success_rate
+    FROM tb_insemination_records r
+    JOIN tb_bull_sires b ON r.ref_bull_sire_id = b.bulls_id
+    WHERE r.ref_vetexpert_id = ?
+    GROUP BY r.ref_bull_sire_id
+    ORDER BY success_rate DESC
+  `;
+
+  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+    if (err) {
+      console.error("Error fetching my stats by bull:", err);
+      return res.status(500).json({ error: "Error fetching my stats by bull" });
+    }
+    return res.status(200).json(rows);
+  });
+});

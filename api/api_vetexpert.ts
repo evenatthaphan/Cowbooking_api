@@ -544,9 +544,13 @@ router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
     // hash รหัสใหม่ก่อนบันทึก
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
+    // await queryAsync(
+    //   "UPDATE tb_vetexperts SET vetexperts_hashpassword = ? WHERE vetexperts_id = ?",
+    //   [hashedPassword, vet_id]
+    // );
     await queryAsync(
-      "UPDATE tb_vetexperts SET vetexperts_hashpassword = ? WHERE vetexperts_id = ?",
-      [hashedPassword, vet_id]
+      "UPDATE tb_vetexperts SET vetexperts_hashpassword = ?, vetexperts_password = ? WHERE vetexperts_id = ?",
+      [hashedPassword, new_password, vet_id]  
     );
 
     return res.status(200).json({ message: "Password changed successfully" });

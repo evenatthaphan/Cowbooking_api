@@ -161,62 +161,6 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
 });
 
 
-// router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
-//   try {
-//     console.log("req.body:", req.body);
-//     const VetExperts = req.body;
-
-//     // check filds
-//     if (
-//       !VetExperts.VetExpert_name ||
-//       !VetExperts.VetExpert_password ||
-//       !VetExperts.phonenumber
-//     ) {
-//       return res.status(400).json({ error: "Missing required fields" });
-//     }
-
-//     if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
-//       return res.status(400).json({ error: "Address fields are required" });
-//     }
-
-//     // upload VetExpert_PL
-//     let uploadResult = null;
-//     if (req.file) {
-//       uploadResult = await cloudinary.uploader.upload(req.file.path, {
-//         folder: "vet_experts",
-//       });
-//       await fs.unlink(req.file.path); // 
-//     }
-
-//     const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
-//     const pendingId = uuidv4();
-
-//     await db.ref(`pending_vet_experts/${pendingId}`).set({
-//       VetExpert_name: VetExperts.VetExpert_name,
-//       VetExpert_password: hashedPassword,
-//       phonenumber: VetExperts.phonenumber,
-//       VetExpert_email: VetExperts.VetExpert_email || "",
-//       VetExpert_address: VetExperts.VetExpert_address || "",
-//       province: VetExperts.province,
-//       district: VetExperts.district,
-//       locality: VetExperts.locality,
-//       VetExpert_PL: uploadResult ? uploadResult.secure_url : null,
-//       profile_image:
-//         "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg",
-//       created_at: new Date().toISOString(),
-//       status: "pending", // รอการอนุมัติ
-//     });
-
-//     res.status(201).json({
-//       message: "Registration submitted for admin approval",
-//       pendingId,
-//     });
-//   } catch (err) {
-//     console.error("Error in /register:", err);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
-
 // insert farm *****
 router.post("/insertfarm", (req, res) => {
   console.log("req.body:", req.body);
@@ -611,6 +555,7 @@ router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
   }
 });
 
+
 // แก้ไขที่อยู่
 router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
   try {
@@ -634,3 +579,5 @@ router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
+
+

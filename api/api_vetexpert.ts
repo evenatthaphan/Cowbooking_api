@@ -333,54 +333,6 @@ router.post("/vet/schedule", async (req, res) => {
   }
 });
 
-// class FileMiddleware {
-//   filename = "";
-//   public readonly diskLoader = multer({
-//     //
-//   storage: multer.memoryStorage(),
-//   limits: {
-//     fileSize: 67108864, // 64 MByte
-//   },
-// });
-// }
-
-// const fileUpload = new FileMiddleware();
-// router.post("/", fileUpload.diskLoader.single("Photo"), async (req, res) => {
-//   const userId = req.body.UserID;
-//   console.log("UserID:", userId);
-
-//   try {
-//     // อัพโหลดรูปภาพไปยัง Firebase Storage
-//     const filename = Date.now() + "-" + Math.round(Math.random() * 1000) + ".png";
-//     const storageRef = ref(storage, "/images/" + filename);
-//     const metadata = { contentType: req.file!.mimetype };
-//     const snapshot = await uploadBytesResumable(storageRef, req.file!.buffer, metadata);
-//     const url = await getDownloadURL(snapshot.ref);
-
-//     // บันทึกรูปภาพลงใน Firebase Storage และรับ URL ของรูปภาพ
-//     const Photo = url;
-//     const count = 10;
-//     console.log(Photo);
-//     console.log(count);
-
-//     // บันทึกข้อมูลลงในฐานข้อมูล MySQL
-//     const UserID = req.body;
-//     // console.log("jju"+UserID);
-
-//     let sql = "INSERT INTO image (userID, imageURL, uploadDate, voteCount, imageName) VALUES (?, ?, NOW(), ?, ?)";
-//     sql = mysql.format(sql,[req.body.UserID, url, count, req.body.imageName]);
-//     conn.query(sql, (err, result) => {
-//       if (err) {
-//         console.error(err);
-//         return res.status(500).json({ error: 'Error inserting user' });
-//       }
-//       res.status(201).json({ Photo: Photo, result });
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: 'Error uploading image and inserting user' });
-//   }
-// });
 
 router.get("/get/schedule/:id", async (req, res) => {
   try {
@@ -598,5 +550,80 @@ router.get("/vet-bulls/total-stock/:vet_id", async (req, res) => {
     return res.status(200).json({ total_stock: result[0].total_stock });
   } catch (err: any) {
     return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// แก้ไขข้อมูลส่วนตัว (ชื่อ, เบอร์, อีเมล, รูปโปรไฟล์, รูปใบประกอบ)
+router.put("/vetexpert/update-profile/:vet_id", async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+    const { vetexperts_name, vetexperts_phonenumber, vetexperts_email, vetexperts_profile_image, vetexperts_license } = req.body;
+
+    const sql = `
+      UPDATE tb_vetexperts
+      SET vetexperts_name = ?, vetexperts_phonenumber = ?, vetexperts_email = ?,
+          vetexperts_profile_image = ?, vetexperts_license = ?
+      WHERE vetexperts_id = ?
+    `;
+    const result: any = await queryAsync(sql, [
+      vetexperts_name, vetexperts_phonenumber, vetexperts_email,
+      vetexperts_profile_image, vetexperts_license, vet_id,
+    ]);
+
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
+    return res.status(200).json({ message: "Profile updated successfully" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// เปลี่ยนรหัสผ่าน
+router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+    const { old_password, new_password } = req.body;
+
+    // ตรวจ password เดิมก่อน
+    const rows: any = await queryAsync(
+      "SELECT vetexperts_password FROM tb_vetexperts WHERE vetexperts_id = ?",
+      [vet_id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Vet not found" });
+    if (rows[0].vetexperts_password !== old_password) {
+      return res.status(400).json({ error: "รหัสผ่านเดิมไม่ถูกต้อง" });
+    }
+
+    await queryAsync(
+      "UPDATE tb_vetexperts SET vetexperts_password = ? WHERE vetexperts_id = ?",
+      [new_password, vet_id]
+    );
+    return res.status(200).json({ message: "Password changed successfully" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// แก้ไขที่อยู่
+router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+    const { vetexperts_province, vetexperts_district, vetexperts_locality, vetexperts_address } = req.body;
+
+    const sql = `
+      UPDATE tb_vetexperts
+      SET vetexperts_province = ?, vetexperts_district = ?,
+          vetexperts_locality = ?, vetexperts_address = ?
+      WHERE vetexperts_id = ?
+    `;
+    const result: any = await queryAsync(sql, [
+      vetexperts_province, vetexperts_district,
+      vetexperts_locality, vetexperts_address, vet_id,
+    ]);
+
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
+    return res.status(200).json({ message: "Address updated successfully" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

@@ -6,6 +6,7 @@ import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
 import { db } from "../firebaseconnect";
+import { requireAdminType } from "../src/middleware/adminAuth";
 
 
 //export const router = express.Router();
@@ -390,5 +391,399 @@ router.put("/update-profile/:id", async (req: any, res: any) => {
   } catch (err) {
     console.error("PUT /admin/update-profile/:id error:", err);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+// GET /admin/members
+// ดูข้อมูลสมาชิกทั้งหมด (farmers + vetexperts)
+// Query: ?type=farmer | vetexpert (ถ้าไม่ส่งจะได้ทั้งหมด)
+router.get("/members", async (req: Request, res: Response) => {
+  const { type } = req.query;
+ 
+  try {
+    let farmers: any[] = [];
+    let vets: any[] = [];
+ 
+    if (!type || type === "farmer") {
+      farmers = await queryAsync(
+        `SELECT farmers_id AS id, farmers_name AS name,
+                farmers_email AS email, farmers_phonenumber AS phonenumber,
+                farmers_province AS province, farmers_district AS district,
+                farmers_locality AS locality, farmers_address AS address,
+                'farmer' AS member_type
+         FROM tb_farmers ORDER BY farmers_id ASC`,
+        []
+      );
+    }
+ 
+    if (!type || type === "vetexpert") {
+      vets = await queryAsync(
+        `SELECT vetexperts_id AS id, vetexperts_name AS name,
+                vetexperts_email AS email, vetexperts_phonenumber AS phonenumber,
+                vetexperts_province AS province, vetexperts_district AS district,
+                vetexperts_locality AS locality, vetexperts_address AS address,
+                vetexperts_license AS license, vetexperts_status AS status,
+                'vetexpert' AS member_type
+         FROM tb_vetexperts ORDER BY vetexperts_id ASC`,
+        []
+      );
+    }
+ 
+    const data = [...farmers, ...vets];
+ 
+    if (data.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบข้อมูลสมาชิก" });
+    }
+ 
+    return res.status(200).json({ success: true, total: data.length, data });
+  } catch (err) {
+    console.error("GET /admin/members error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+// GET /admin/members/search
+// ค้นหาสมาชิก filter จาก จังหวัด, อำเภอ, ตำบล, keyword
+// Query: ?province=&district=&locality=&keyword=&type=farmer|vetexpert
+router.get("/members/search", async (req: Request, res: Response) => {
+  const { province, district, locality, keyword, type } = req.query as any;
+ 
+  try {
+    const buildWhere = (prefix: string) => {
+      const conditions: string[] = [];
+      const values: any[] = [];
+ 
+      if (province) { conditions.push(`${prefix}_province = ?`);                          values.push(province); }
+      if (district) { conditions.push(`${prefix}_district = ?`);                          values.push(district); }
+      if (locality) { conditions.push(`${prefix}_locality = ?`);                          values.push(locality); }
+      if (keyword)  { conditions.push(`(${prefix}_name LIKE ? OR ${prefix}_email LIKE ?)`); values.push(`%${keyword}%`, `%${keyword}%`); }
+ 
+      return {
+        where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+        values,
+      };
+    };
+ 
+    let farmers: any[] = [];
+    let vets: any[] = [];
+ 
+    if (!type || type === "farmer") {
+      const { where, values } = buildWhere("farmers");
+      farmers = await queryAsync(
+        `SELECT farmers_id AS id, farmers_name AS name,
+                farmers_email AS email, farmers_phonenumber AS phonenumber,
+                farmers_province AS province, farmers_district AS district,
+                farmers_locality AS locality, 'farmer' AS member_type
+         FROM tb_farmers ${where}`,
+        values
+      );
+    }
+ 
+    if (!type || type === "vetexpert") {
+      const { where, values } = buildWhere("vetexperts");
+      vets = await queryAsync(
+        `SELECT vetexperts_id AS id, vetexperts_name AS name,
+                vetexperts_email AS email, vetexperts_phonenumber AS phonenumber,
+                vetexperts_province AS province, vetexperts_district AS district,
+                vetexperts_locality AS locality, vetexperts_license AS license,
+                vetexperts_status AS status, 'vetexpert' AS member_type
+         FROM tb_vetexperts ${where}`,
+        values
+      );
+    }
+ 
+    const data = [...farmers, ...vets];
+ 
+    return res.status(200).json({ success: true, total: data.length, data });
+  } catch (err) {
+    console.error("GET /admin/members/search error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+// GET /admin/verify-vet
+// ดูรายการ vetexpert ที่รอการยืนยัน (status = 0)
+router.get("/verify-vet", async (req: Request, res: Response) => {
+  try {
+    const result = await queryAsync(
+      `SELECT vetexperts_id, vetexperts_name, vetexperts_email,
+              vetexperts_phonenumber, vetexperts_license,
+              vetexperts_province, vetexperts_district,
+              vetexperts_locality, vetexperts_status
+       FROM tb_vetexperts
+       WHERE vetexperts_status = 0
+       ORDER BY vetexperts_id ASC`,
+      []
+    );
+ 
+    return res.status(200).json({ success: true, total: result.length, data: result });
+  } catch (err) {
+    console.error("GET /admin/verify-vet error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+ 
+
+// PUT /admin/verify-vet/:id
+// อนุมัติ หรือ ปฏิเสธ vetexpert
+// Body: status → 1 = อนุมัติ, 2 = ปฏิเสธ
+router.put("/verify-vet/:id", async (req: any, res: any) => {
+  const { id } = req.params;
+  const { status } = req.body;
+ 
+  if (status === undefined || ![1, 2].includes(Number(status))) {
+    return res.status(400).json({
+      success: false,
+      message: "status ต้องเป็น 1 (อนุมัติ) หรือ 2 (ปฏิเสธ) เท่านั้น",
+    });
+  }
+ 
+  try {
+    const existing = await queryAsync(
+      "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?", [id]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบ vetexpert" });
+    }
+ 
+    await queryAsync(
+      "UPDATE tb_vetexperts SET vetexperts_status = ? WHERE vetexperts_id = ?",
+      [status, id]
+    );
+ 
+    const message = Number(status) === 1 ? "อนุมัติ vetexpert สำเร็จ" : "ปฏิเสธ vetexpert สำเร็จ";
+    return res.status(200).json({ success: true, message });
+  } catch (err) {
+    console.error("PUT /admin/verify-vet/:id error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARM MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+// ── ดูฟาร์มทั้งหมด ────────────────────────────────────────────────────────
+router.get("/farms", requireType(3), async (req, res) => {
+  try {
+    const farms = await queryAsync(
+      `SELECT f.farmers_id, f.farmers_name, f.farmers_address,
+              f.farmers_province, f.farmers_district, f.farmers_locality,
+              COUNT(DISTINCT vb.vet_bulls_id) AS total_bulls
+       FROM tb_farmers f
+       LEFT JOIN tb_vet_bulls vb ON f.farmers_id = vb.ref_farmers_id
+       GROUP BY f.farmers_id
+       ORDER BY f.farmers_name ASC`
+    );
+    return res.status(200).json(farms);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── แก้ไขข้อมูลฟาร์ม (เกษตรกร) ───────────────────────────────────────────
+router.put("/farms/update/:id", requireType(3), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { farmers_name, farmers_address, farmers_province, farmers_district, farmers_locality } = req.body;
+ 
+    const result: any = await queryAsync(
+      `UPDATE tb_farmers
+       SET farmers_name = ?, farmers_address = ?, farmers_province = ?,
+           farmers_district = ?, farmers_locality = ?
+       WHERE farmers_id = ?`,
+      [farmers_name, farmers_address, farmers_province, farmers_district, farmers_locality, id]
+    );
+ 
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบฟาร์ม" });
+    return res.status(200).json({ message: "แก้ไขข้อมูลฟาร์มสำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ═══════════════════════════════════════════════════════════════════════════
+// BULL MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+// ── ดูพ่อพันธุ์ทั้งหมด ────────────────────────────────────────────────────
+router.get("/bulls", requireType(3), async (req, res) => {
+  try {
+    const bulls = await queryAsync(
+      `SELECT bs.bulls_id, bs.bulls_name, bs.bulls_breed,
+              bs.bulls_highlight, bs.bulls_history,
+              SUM(vb.bulls_semen_stock) AS total_stock
+       FROM tb_bull_sires bs
+       LEFT JOIN tb_vet_bulls vb ON bs.bulls_id = vb.ref_bulls_id
+       GROUP BY bs.bulls_id
+       ORDER BY bs.bulls_name ASC`
+    );
+    return res.status(200).json(bulls);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── เพิ่มพ่อพันธุ์ ─────────────────────────────────────────────────────────
+router.post("/bulls/create", requireType(3), async (req, res) => {
+  try {
+    const { bulls_name, bulls_breed, bulls_highlight, bulls_history } = req.body;
+ 
+    if (!bulls_name || !bulls_breed) {
+      return res.status(400).json({ error: "กรุณากรอกชื่อและสายพันธุ์" });
+    }
+ 
+    await queryAsync(
+      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_highlight, bulls_history)
+       VALUES (?, ?, ?, ?)`,
+      [bulls_name, bulls_breed, bulls_highlight || null, bulls_history || null]
+    );
+ 
+    return res.status(201).json({ message: "เพิ่มพ่อพันธุ์สำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── แก้ไขพ่อพันธุ์ ─────────────────────────────────────────────────────────
+router.put("/bulls/update/:id", requireType(3), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bulls_name, bulls_breed, bulls_highlight, bulls_history } = req.body;
+ 
+    const result: any = await queryAsync(
+      `UPDATE tb_bull_sires
+       SET bulls_name = ?, bulls_breed = ?, bulls_highlight = ?, bulls_history = ?
+       WHERE bulls_id = ?`,
+      [bulls_name, bulls_breed, bulls_highlight || null, bulls_history || null, id]
+    );
+ 
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบพ่อพันธุ์" });
+    return res.status(200).json({ message: "แก้ไขพ่อพันธุ์สำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── ลบพ่อพันธุ์ ────────────────────────────────────────────────────────────
+router.delete("/bulls/delete/:id", requireAdminType(3), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result: any = await queryAsync(
+      "DELETE FROM tb_bull_sires WHERE bulls_id = ?",
+      [id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบพ่อพันธุ์" });
+    return res.status(200).json({ message: "ลบพ่อพันธุ์สำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ═══════════════════════════════════════════════════════════════════════════
+// INSEMINATION HISTORY
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+router.get("/inseminations", requireAdminType(3), async (req, res) => {
+  try {
+    const { from_date, to_date, vet_id, farmer_id, status } = req.query;
+ 
+    let where = "WHERE 1=1";
+    const params: any[] = [];
+ 
+    if (from_date) { where += " AND s.schedules_available_date >= ?"; params.push(from_date); }
+    if (to_date)   { where += " AND s.schedules_available_date <= ?"; params.push(to_date); }
+    if (vet_id)    { where += " AND b.ref_vetexperts_id = ?";         params.push(vet_id); }
+    if (farmer_id) { where += " AND b.ref_farmers_id = ?";            params.push(farmer_id); }
+    if (status)    { where += " AND b.bookings_status = ?";           params.push(status); }
+ 
+    const rows = await queryAsync(
+      `SELECT
+        b.queue_bookings_id,
+        f.farmers_name,
+        v.vetexperts_name,
+        bs.bulls_name, bs.bulls_breed,
+        b.bookings_dose,
+        b.bookings_status,
+        b.bookings_vet_notes,
+        s.schedules_available_date AS schedule_date,
+        s.schedules_available_time AS schedule_time,
+        b.created_at
+       FROM tb_queue_bookings b
+       LEFT JOIN tb_farmers f       ON b.ref_farmers_id   = f.farmers_id
+       LEFT JOIN tb_vetexperts v    ON b.ref_vetexperts_id = v.vetexperts_id
+       LEFT JOIN tb_vet_schedules s ON b.ref_schedules_id  = s.schedules_id
+       LEFT JOIN tb_vet_bulls vb   ON b.ref_bulls_id       = vb.vet_bulls_id
+       LEFT JOIN tb_bull_sires bs  ON vb.ref_bulls_id      = bs.bulls_id
+       ${where}
+       ORDER BY b.created_at DESC`,
+      params
+    );
+ 
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD STATS
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+router.get("/dashboard/stats", requireAdminType(3), async (req, res) => {
+  try {
+    const [[bookings], [farmers], [vets], [pending], [success]] = await Promise.all([
+      queryAsync("SELECT COUNT(*) AS total FROM tb_queue_bookings") as any,
+      queryAsync("SELECT COUNT(*) AS total FROM tb_farmers") as any,
+      queryAsync("SELECT COUNT(*) AS total FROM tb_vetexperts WHERE vetexperts_status = 1") as any,
+      queryAsync("SELECT COUNT(*) AS total FROM tb_vetexperts WHERE vetexperts_status = 0") as any,
+      queryAsync(`
+        SELECT
+          ROUND(
+            SUM(CASE WHEN bookings_status = 'accepted' THEN 1 ELSE 0 END) * 100.0
+            / NULLIF(COUNT(*), 0), 1
+          ) AS rate
+        FROM tb_queue_bookings
+        WHERE bookings_status IN ('accepted', 'rejected')
+      `) as any,
+    ]);
+ 
+    return res.status(200).json({
+      total_bookings:    bookings.total,
+      total_farmers:     farmers.total,
+      total_vets:        vets.total,
+      pending_approvals: pending.total,
+      success_rate:      success.rate ?? 0,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── แนวโน้มรายเดือน ────────────────────────────────────────────────────────
+router.get("/dashboard/trend", requireAdminType(3), async (req, res) => {
+  try {
+    const rows = await queryAsync(
+      `SELECT
+        DATE_FORMAT(s.schedules_available_date, '%Y-%m') AS month,
+        COUNT(*) AS total,
+        SUM(CASE WHEN b.bookings_status = 'accepted' THEN 1 ELSE 0 END) AS success,
+        ROUND(
+          SUM(CASE WHEN b.bookings_status = 'accepted' THEN 1 ELSE 0 END) * 100.0
+          / NULLIF(COUNT(*), 0), 1
+        ) AS success_rate
+       FROM tb_queue_bookings b
+       LEFT JOIN tb_vet_schedules s ON b.ref_schedules_id = s.schedules_id
+       WHERE b.bookings_status IN ('accepted', 'rejected')
+         AND s.schedules_available_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+       GROUP BY month
+       ORDER BY month ASC`
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

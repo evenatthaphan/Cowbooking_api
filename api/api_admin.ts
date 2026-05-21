@@ -748,13 +748,13 @@ router.put("/verify-vet/:id", async (req: any, res: any) => {
 router.get("/farms", requireType(3), async (req, res) => {
   try {
     const farms = await queryAsync(
-      `SELECT f.farmers_id, f.farmers_name, f.farmers_address,
-              f.farmers_province, f.farmers_district, f.farmers_locality,
+      `SELECT f.farms_id, f.farms_name, f.farms_address,
+              f.farms_province, f.farms_district, f.farms_locality,
               COUNT(DISTINCT vb.vet_bulls_id) AS total_bulls
-       FROM tb_farmers f
-       LEFT JOIN tb_vet_bulls vb ON f.farmers_id = vb.ref_farmers_id
-       GROUP BY f.farmers_id
-       ORDER BY f.farmers_name ASC`
+       FROM tb_farms f
+       LEFT JOIN tb_vet_bulls vb ON f.farms_id = vb.ref_farms_id
+       GROUP BY f.farms_id
+       ORDER BY f.farms_name ASC`
     );
     return res.status(200).json(farms);
   } catch (err: any) {

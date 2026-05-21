@@ -812,6 +812,36 @@ router.put("/farms/update/:id", requireAdminType(3), async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
+
+// ── ลบฟาร์ม ───────────────────────────────────────────────────────────────
+router.delete("/farms/delete/:id", requireAdminType(3), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // เช็คก่อนว่ามีวัวผูกอยู่มั้ย
+    const bulls: any = await queryAsync(
+      "SELECT COUNT(*) AS total FROM tb_bull_sires WHERE ref_farm_id = ?",
+      [id]
+    );
+
+    if (bulls[0].total > 0) {
+      return res.status(400).json({
+        error: "ไม่สามารถลบฟาร์มได้ เนื่องจากมีพ่อพันธุ์อยู่ในฟาร์มนี้",
+        total_bulls: bulls[0].total,
+      });
+    }
+
+    const result: any = await queryAsync(
+      "DELETE FROM tb_farms WHERE frams_id = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบฟาร์ม" });
+    return res.status(200).json({ message: "ลบฟาร์มสำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
  
 // ═══════════════════════════════════════════════════════════════════════════
 // BULL MANAGEMENT

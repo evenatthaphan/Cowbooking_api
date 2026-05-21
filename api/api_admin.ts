@@ -549,6 +549,138 @@ router.get("/members/search", async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================
+// PUT /admin/members/farmer/:id
+// แก้ไขข้อมูลเกษตรกร (master เท่านั้น)
+// Body: name, email, phonenumber, address
+// ============================================================
+router.put("/members/farmer/:id", requireType(1), async (req: any, res: any) => {
+  const { id } = req.params;
+  const { name, email, phonenumber, address } = req.body;
+ 
+  if (!name && !email && !phonenumber && !address) {
+    return res.status(400).json({ success: false, message: "ไม่มีข้อมูลที่ต้องการแก้ไข" });
+  }
+ 
+  try {
+    const existing = await queryAsync(
+      "SELECT farmers_id FROM tb_farmers WHERE farmers_id = ?", [id]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบเกษตรกร" });
+    }
+ 
+    const fields: string[] = [];
+    const values: any[]   = [];
+ 
+    if (name)        { fields.push("farmers_name = ?");        values.push(name); }
+    if (email)       { fields.push("farmers_email = ?");       values.push(email); }
+    if (phonenumber) { fields.push("farmers_phonenumber = ?"); values.push(phonenumber); }
+    if (address)     { fields.push("farmers_address = ?");     values.push(address); }
+    values.push(id);
+ 
+    await queryAsync(
+      `UPDATE tb_farmers SET ${fields.join(", ")} WHERE farmers_id = ?`,
+      values
+    );
+ 
+    return res.status(200).json({ success: true, message: "แก้ไขข้อมูลเกษตรกรสำเร็จ" });
+  } catch (err) {
+    console.error("PUT /admin/members/farmer/:id error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+ 
+// ============================================================
+// DELETE /admin/members/farmer/:id
+// ลบเกษตรกร (master เท่านั้น)
+// ============================================================
+router.delete("/members/farmer/:id", requireType(1), async (req: any, res: any) => {
+  const { id } = req.params;
+ 
+  try {
+    const existing = await queryAsync(
+      "SELECT farmers_id FROM tb_farmers WHERE farmers_id = ?", [id]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบเกษตรกร" });
+    }
+ 
+    await queryAsync("DELETE FROM tb_farmers WHERE farmers_id = ?", [id]);
+ 
+    return res.status(200).json({ success: true, message: "ลบเกษตรกรสำเร็จ" });
+  } catch (err) {
+    console.error("DELETE /admin/members/farmer/:id error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+ 
+// ============================================================
+// PUT /admin/members/vetexpert/:id
+// แก้ไขข้อมูลสัตวบาล (master เท่านั้น)
+// Body: name, email, phonenumber, address
+// ============================================================
+router.put("/members/vetexpert/:id", requireType(1), async (req: any, res: any) => {
+  const { id } = req.params;
+  const { name, email, phonenumber, address } = req.body;
+ 
+  if (!name && !email && !phonenumber && !address) {
+    return res.status(400).json({ success: false, message: "ไม่มีข้อมูลที่ต้องการแก้ไข" });
+  }
+ 
+  try {
+    const existing = await queryAsync(
+      "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?", [id]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบสัตวบาล" });
+    }
+ 
+    const fields: string[] = [];
+    const values: any[]   = [];
+ 
+    if (name)        { fields.push("vetexperts_name = ?");        values.push(name); }
+    if (email)       { fields.push("vetexperts_email = ?");       values.push(email); }
+    if (phonenumber) { fields.push("vetexperts_phonenumber = ?"); values.push(phonenumber); }
+    if (address)     { fields.push("vetexperts_address = ?");     values.push(address); }
+    values.push(id);
+ 
+    await queryAsync(
+      `UPDATE tb_vetexperts SET ${fields.join(", ")} WHERE vetexperts_id = ?`,
+      values
+    );
+ 
+    return res.status(200).json({ success: true, message: "แก้ไขข้อมูลสัตวบาลสำเร็จ" });
+  } catch (err) {
+    console.error("PUT /admin/members/vetexpert/:id error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+ 
+// ============================================================
+// DELETE /admin/members/vetexpert/:id
+// ลบสัตวบาล (master เท่านั้น)
+// ============================================================
+router.delete("/members/vetexpert/:id", requireType(1), async (req: any, res: any) => {
+  const { id } = req.params;
+ 
+  try {
+    const existing = await queryAsync(
+      "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?", [id]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: "ไม่พบสัตวบาล" });
+    }
+ 
+    await queryAsync("DELETE FROM tb_vetexperts WHERE vetexperts_id = ?", [id]);
+ 
+    return res.status(200).json({ success: true, message: "ลบสัตวบาลสำเร็จ" });
+  } catch (err) {
+    console.error("DELETE /admin/members/vetexpert/:id error:", err);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 
 // GET /admin/verify-vet
 // ดูรายการ vetexpert ที่รอการยืนยัน (status = 0)

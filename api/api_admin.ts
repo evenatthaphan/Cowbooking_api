@@ -766,14 +766,14 @@ router.get("/farms", requireType(3), async (req, res) => {
 router.put("/farms/update/:id", requireType(3), async (req, res) => {
   try {
     const { id } = req.params;
-    const { farmers_name, farmers_address, farmers_province, farmers_district, farmers_locality } = req.body;
+    const { farms_name, farms_address, farms_province, farms_district, farms_locality } = req.body;
  
     const result: any = await queryAsync(
-      `UPDATE tb_farmers
-       SET farmers_name = ?, farmers_address = ?, farmers_province = ?,
-           farmers_district = ?, farmers_locality = ?
-       WHERE farmers_id = ?`,
-      [farmers_name, farmers_address, farmers_province, farmers_district, farmers_locality, id]
+      `UPDATE tb_farms
+       SET farms_name = ?, farms_address = ?, farms_province = ?,
+           farms_district = ?, farms_locality = ?
+       WHERE farms_id = ?`,
+      [farms_name, farms_address, farms_province, farms_district, farms_locality, id]
     );
  
     if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบฟาร์ม" });

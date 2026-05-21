@@ -868,16 +868,16 @@ router.get("/bulls", requireType(3), async (req, res) => {
 // ── เพิ่มพ่อพันธุ์ ─────────────────────────────────────────────────────────
 router.post("/bulls/create", requireType(3), async (req, res) => {
   try {
-    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id } = req.body;
+    const { bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id } = req.body;
 
     if (!bulls_name || !bulls_breed) {
       return res.status(400).json({ error: "กรุณากรอกชื่อและสายพันธุ์" });
     }
 
     await queryAsync(
-      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, ref_farm_id || null]
+      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [bulls_name, bulls_breed, bulls_age || null, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, ref_farm_id || null]
     );
 
     return res.status(201).json({ message: "เพิ่มพ่อพันธุ์สำเร็จ" });
@@ -885,26 +885,28 @@ router.post("/bulls/create", requireType(3), async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
- 
+
+
 // ── แก้ไขพ่อพันธุ์ ─────────────────────────────────────────────────────────
 router.put("/bulls/update/:id", requireType(3), async (req, res) => {
   try {
     const { id } = req.params;
-    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus } = req.body;
- 
+    const { bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id } = req.body;
+
     const result: any = await queryAsync(
       `UPDATE tb_bull_sires
-       SET bulls_name = ?, bulls_breed = ?, bulls_characteristics = ?, bulls_contest_records = ?, bulls_HealthStatus = ?
+       SET bulls_name = ?, bulls_breed = ?, bulls_age = ?, bulls_characteristics = ?, bulls_contest_records = ?, bulls_HealthStatus = ?, ref_farm_id = ?
        WHERE bulls_id = ?`,
-      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, id]
+      [bulls_name, bulls_breed, bulls_age || null, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, ref_farm_id || null, id]
     );
- 
+
     if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบพ่อพันธุ์" });
     return res.status(200).json({ message: "แก้ไขพ่อพันธุ์สำเร็จ" });
   } catch (err: any) {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
+ 
  
 // ── ลบพ่อพันธุ์ ────────────────────────────────────────────────────────────
 router.delete("/bulls/delete/:id", requireAdminType(3), async (req, res) => {

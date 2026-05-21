@@ -767,20 +767,45 @@ router.get("/farms", requireAdminType(3), async (req, res) => {
   }
 });
  
-// ── แก้ไขข้อมูลฟาร์ม (เกษตรกร) ───────────────────────────────────────────
-router.put("/farms/update/:id", requireType(3), async (req, res) => {
+// ── เพิ่มฟาร์ม ─────────────────────────────────────────────────────────────
+router.post("/farms/create", requireAdminType(3), async (req, res) => {
+  try {
+    const { frams_name, frams_province, frams_district, frams_locality, frams_address, frams_lat, frams_long } = req.body;
+
+    if (!frams_name) return res.status(400).json({ error: "กรุณากรอกชื่อฟาร์ม" });
+
+    await queryAsync(
+      `INSERT INTO tb_farms
+       (frams_name, frams_province, frams_district, frams_locality, frams_address, frams_lat, frams_long)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [frams_name, frams_province || null, frams_district || null,
+       frams_locality || null, frams_address || null,
+       frams_lat || null, frams_long || null]
+    );
+
+    return res.status(201).json({ message: "เพิ่มฟาร์มสำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── แก้ไขฟาร์ม ─────────────────────────────────────────────────────────────
+router.put("/farms/update/:id", requireAdminType(3), async (req, res) => {
   try {
     const { id } = req.params;
-    const { farms_name, farms_address, farms_province, farms_district, farms_locality } = req.body;
- 
+    const { frams_name, frams_province, frams_district, frams_locality, frams_address, frams_lat, frams_long } = req.body;
+
     const result: any = await queryAsync(
       `UPDATE tb_farms
-       SET farms_name = ?, farms_address = ?, farms_province = ?,
-           farms_district = ?, farms_locality = ?
-       WHERE farms_id = ?`,
-      [farms_name, farms_address, farms_province, farms_district, farms_locality, id]
+       SET frams_name = ?, frams_province = ?, frams_district = ?,
+           frams_locality = ?, frams_address = ?, frams_lat = ?, frams_long = ?,
+           updated_at = NOW()
+       WHERE frams_id = ?`,
+      [frams_name, frams_province || null, frams_district || null,
+       frams_locality || null, frams_address || null,
+       frams_lat || null, frams_long || null, id]
     );
- 
+
     if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบฟาร์ม" });
     return res.status(200).json({ message: "แก้ไขข้อมูลฟาร์มสำเร็จ" });
   } catch (err: any) {

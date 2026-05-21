@@ -745,16 +745,21 @@ router.put("/verify-vet/:id", async (req: any, res: any) => {
 // ═══════════════════════════════════════════════════════════════════════════
  
 // ── ดูฟาร์มทั้งหมด ────────────────────────────────────────────────────────
-router.get("/farms", requireType(3), async (req, res) => {
+router.get("/farms", requireAdminType(3), async (req, res) => {
   try {
     const farms = await queryAsync(
-      `SELECT f.farms_id, f.farms_name, f.farms_address,
-              f.farms_province, f.farms_district, f.farms_locality,
-              COUNT(DISTINCT vb.vet_bulls_id) AS total_bulls
+      `SELECT 
+        f.frams_id,
+        f.frams_name,
+        f.frams_province,
+        f.frams_district,
+        f.frams_locality,
+        f.frams_address,
+        COUNT(DISTINCT bs.bulls_id) AS total_bulls
        FROM tb_farms f
-       LEFT JOIN tb_vet_bulls vb ON f.farms_id = vb.ref_farms_id
-       GROUP BY f.farms_id
-       ORDER BY f.farms_name ASC`
+       LEFT JOIN tb_bull_sires bs ON f.frams_id = bs.ref_farm_id
+       GROUP BY f.frams_id
+       ORDER BY f.frams_name ASC`
     );
     return res.status(200).json(farms);
   } catch (err: any) {

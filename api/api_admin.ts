@@ -852,7 +852,7 @@ router.get("/bulls", requireType(3), async (req, res) => {
   try {
     const bulls = await queryAsync(
       `SELECT bs.bulls_id, bs.bulls_name, bs.bulls_breed,
-              bs.bulls_highlight, bs.bulls_history,
+              bs.bulls_characteristics, bs.bulls_contest_records, bs.bulls_HealthStatus,
               SUM(vb.bulls_semen_stock) AS total_stock
        FROM tb_bull_sires bs
        LEFT JOIN tb_vet_bulls vb ON bs.bulls_id = vb.ref_bulls_id
@@ -868,16 +868,16 @@ router.get("/bulls", requireType(3), async (req, res) => {
 // ── เพิ่มพ่อพันธุ์ ─────────────────────────────────────────────────────────
 router.post("/bulls/create", requireType(3), async (req, res) => {
   try {
-    const { bulls_name, bulls_breed, bulls_highlight, bulls_history } = req.body;
+    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records } = req.body;
  
     if (!bulls_name || !bulls_breed) {
       return res.status(400).json({ error: "กรุณากรอกชื่อและสายพันธุ์" });
     }
  
     await queryAsync(
-      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_highlight, bulls_history)
-       VALUES (?, ?, ?, ?)`,
-      [bulls_name, bulls_breed, bulls_highlight || null, bulls_history || null]
+      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus)
+       VALUES (?, ?, ?, ?, ?)`,
+      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, null]
     );
  
     return res.status(201).json({ message: "เพิ่มพ่อพันธุ์สำเร็จ" });
@@ -890,13 +890,13 @@ router.post("/bulls/create", requireType(3), async (req, res) => {
 router.put("/bulls/update/:id", requireType(3), async (req, res) => {
   try {
     const { id } = req.params;
-    const { bulls_name, bulls_breed, bulls_highlight, bulls_history } = req.body;
+    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records } = req.body;
  
     const result: any = await queryAsync(
       `UPDATE tb_bull_sires
-       SET bulls_name = ?, bulls_breed = ?, bulls_highlight = ?, bulls_history = ?
+       SET bulls_name = ?, bulls_breed = ?, bulls_characteristics = ?, bulls_contest_records = ?, bulls_HealthStatus = ?
        WHERE bulls_id = ?`,
-      [bulls_name, bulls_breed, bulls_highlight || null, bulls_history || null, id]
+      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, null, id]
     );
  
     if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบพ่อพันธุ์" });

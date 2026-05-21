@@ -79,6 +79,9 @@ router.post("/register", async (req: Request, res: Response) => {
       .status(400)
       .json({ error: "province, district and locality are required" });
   }
+  if (Farmer.lat == null || Farmer.lng == null) {
+    return res.status(400).json({ error: "กรุณาเลือกตำแหน่งบนแผนที่" });
+  }
 
   // เช็คชื่อซ้ำ
   const checkFarmNameSql =
@@ -140,11 +143,13 @@ router.post("/register", async (req: Request, res: Response) => {
                 farmers_address,
                 farmers_province,
                 farmers_district,
-                farmers_locality              
+                farmers_locality,
+                farmers_loc_lat,    -- เพิ่ม
+                farmers_loc_long    -- เพิ่ม
               )
             VALUES (?, ?, ?, ?, ?, 
               'https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg',
-              ?, ?, ?, ?
+              ?, ?, ?, ?, ?, ?      -- เพิ่ม 2 ?
             )
           `;
 
@@ -159,7 +164,9 @@ router.post("/register", async (req: Request, res: Response) => {
               Farmer.farm_address,
               Farmer.province,
               Farmer.district,
-              Farmer.locality
+              Farmer.locality,
+              Farmer.lat,
+              Farmer.lng
             ],
             (err, result) => {
               if (err) {

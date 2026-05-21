@@ -116,8 +116,6 @@ router.post("/login", async (req, res) => {
 });
 
 
-
-
 // Search *****
 router.post("/search", async (req, res) => {
   const { keyword, province, district, locality } = req.body;

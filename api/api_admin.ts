@@ -26,6 +26,52 @@ router.get("/getadmins", (req, res) => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// VET APPROVAL
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+// ── รายการ vet รอยืนยัน (ทุก type) ───────────────────────────────────────
+router.get("/vet/pending", requireAdminType(3), async (req, res) => {
+  try {
+    const rows = await queryAsync(
+      `SELECT vetexperts_id, vetexperts_name, vetexperts_email,
+              vetexperts_phonenumber, vetexperts_license,
+              vetexperts_profile_image, created_at
+       FROM tb_vetexperts
+       WHERE vetexperts_status = 0
+       ORDER BY created_at ASC`
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+ 
+// ── อนุมัติ / ปฏิเสธ vet (ทุก type) ──────────────────────────────────────
+router.put("/vet/approve/:vet_id", requireAdminType(3), async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+    const { status } = req.body; // 1 = อนุมัติ, 2 = ปฏิเสธ
+ 
+    if (![1, 2].includes(Number(status))) {
+      return res.status(400).json({ error: "status ต้องเป็น 1 (อนุมัติ) หรือ 2 (ปฏิเสธ)" });
+    }
+ 
+    const result: any = await queryAsync(
+      "UPDATE tb_vetexperts SET vetexperts_status = ? WHERE vetexperts_id = ?",
+      [status, vet_id]
+    );
+ 
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบ Vet" });
+ 
+    return res.status(200).json({
+      message: Number(status) === 1 ? "อนุมัติสำเร็จ" : "ปฏิเสธสำเร็จ",
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 
 // select form register vet from firebase ****
 router.get("/vet-requests", async (req: Request, res: Response) => {

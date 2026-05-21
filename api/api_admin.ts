@@ -868,18 +868,18 @@ router.get("/bulls", requireType(3), async (req, res) => {
 // ── เพิ่มพ่อพันธุ์ ─────────────────────────────────────────────────────────
 router.post("/bulls/create", requireType(3), async (req, res) => {
   try {
-    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus } = req.body;
- 
+    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id } = req.body;
+
     if (!bulls_name || !bulls_breed) {
       return res.status(400).json({ error: "กรุณากรอกชื่อและสายพันธุ์" });
     }
- 
+
     await queryAsync(
-      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus)
-       VALUES (?, ?, ?, ?, ?)`,
-      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null]
+      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus, ref_farm_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, ref_farm_id || null]
     );
- 
+
     return res.status(201).json({ message: "เพิ่มพ่อพันธุ์สำเร็จ" });
   } catch (err: any) {
     return res.status(500).json({ error: "Internal server error", details: err.message });

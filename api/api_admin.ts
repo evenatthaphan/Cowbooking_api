@@ -868,7 +868,7 @@ router.get("/bulls", requireType(3), async (req, res) => {
 // ── เพิ่มพ่อพันธุ์ ─────────────────────────────────────────────────────────
 router.post("/bulls/create", requireType(3), async (req, res) => {
   try {
-    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records } = req.body;
+    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus } = req.body;
  
     if (!bulls_name || !bulls_breed) {
       return res.status(400).json({ error: "กรุณากรอกชื่อและสายพันธุ์" });
@@ -877,7 +877,7 @@ router.post("/bulls/create", requireType(3), async (req, res) => {
     await queryAsync(
       `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus)
        VALUES (?, ?, ?, ?, ?)`,
-      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, null]
+      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null]
     );
  
     return res.status(201).json({ message: "เพิ่มพ่อพันธุ์สำเร็จ" });
@@ -890,13 +890,13 @@ router.post("/bulls/create", requireType(3), async (req, res) => {
 router.put("/bulls/update/:id", requireType(3), async (req, res) => {
   try {
     const { id } = req.params;
-    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records } = req.body;
+    const { bulls_name, bulls_breed, bulls_characteristics, bulls_contest_records, bulls_HealthStatus } = req.body;
  
     const result: any = await queryAsync(
       `UPDATE tb_bull_sires
        SET bulls_name = ?, bulls_breed = ?, bulls_characteristics = ?, bulls_contest_records = ?, bulls_HealthStatus = ?
        WHERE bulls_id = ?`,
-      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, null, id]
+      [bulls_name, bulls_breed, bulls_characteristics || null, bulls_contest_records || null, bulls_HealthStatus || null, id]
     );
  
     if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบพ่อพันธุ์" });

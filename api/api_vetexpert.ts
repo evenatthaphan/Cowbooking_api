@@ -144,8 +144,8 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       VetExperts.VetExpert_address || "",
       licenseUrl, // 
       0,
-      null,
-      null,
+      VetExperts.lat || null,
+      VetExperts.lng || null,
     ];
 
     const result: any = await queryAsync(sql, values);

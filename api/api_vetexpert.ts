@@ -123,7 +123,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
         vetexperts_province,
         vetexperts_district,
         vetexperts_locality,
-        vetexperts__address,
+        vetexperts_address,
         vetexperts_license,
         vetexperts_status,
         vetexperts_loc_lat,

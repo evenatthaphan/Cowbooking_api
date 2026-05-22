@@ -366,6 +366,40 @@ router.put("/changepass/:id", async (req, res) => {
 });
 
 
+router.put("/update-address/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      farmers_province,
+      farmers_district,
+      farmers_locality,
+      farmers_address,
+      farmers_loc_lat,
+      farmers_loc_long,
+    } = req.body;
+
+    const result: any = await queryAsync(
+      `UPDATE tb_farmers
+       SET farmers_province = ?, farmers_district = ?, farmers_locality = ?,
+           farmers_address = ?, farmers_loc_lat = ?, farmers_loc_long = ?
+       WHERE farmers_id = ?`,
+      [
+        farmers_province, farmers_district, farmers_locality,
+        farmers_address, farmers_loc_lat || null, farmers_loc_long || null,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+
+    return res.status(200).json({ message: "อัพเดตที่อยู่สำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+
 
 // Get distinct provinces from Farmers
 router.get("/locations/provinces", (req, res) => {

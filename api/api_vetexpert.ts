@@ -160,6 +160,42 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
   }
 });
 
+// update address
+router.put("/update-address/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      vetexperts_province,
+      vetexperts_district,
+      vetexperts_locality,
+      vetexperts_address,
+      vetexperts_loc_lat,
+      vetexperts_loc_long,
+    } = req.body;
+
+    const result: any = await queryAsync(
+      `UPDATE tb_vetexperts
+       SET vetexperts_province = ?, vetexperts_district = ?, vetexperts_locality = ?,
+           vetexperts_address = ?, vetexperts_loc_lat = ?, vetexperts_loc_long = ?
+       WHERE vetexperts_id = ?`,
+      [
+        vetexperts_province, vetexperts_district, vetexperts_locality,
+        vetexperts_address,
+        vetexperts_loc_lat  || null,
+        vetexperts_loc_long || null,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "ไม่พบสัตวบาล" });
+
+    return res.status(200).json({ message: "อัพเดตที่อยู่สำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {

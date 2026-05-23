@@ -477,7 +477,7 @@ router.get("/vet-bulls/my/:vet_id", async (req, res) => {
        FROM tb_vet_bulls vb
        JOIN tb_bull_sires bs ON vb.ref_bulls_id = bs.bulls_id
        LEFT JOIN tb_farms f ON bs.ref_farm_id = f.frams_id
-       LEFT JOIN tb_bulls_images bi ON bs.bulls_id = bi.ref_bulls_id
+       LEFT JOIN tb_bulls_img bi ON bs.bulls_id = bi.ref_bulls_id
        WHERE vb.ref_vetexperts_id = ?
        ORDER BY vb.created_at DESC`,
       [vet_id]
@@ -569,7 +569,7 @@ router.post("/vet-bulls/add", async (req, res) => {
       // บันทึกรูป
       const imgs = [...images, null, null, null, null, null].slice(0, 5);
       await queryAsync(
-        `INSERT INTO tb_bulls_images (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
+        `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
          VALUES (?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),

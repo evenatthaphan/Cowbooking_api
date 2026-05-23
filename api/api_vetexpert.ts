@@ -461,3 +461,148 @@ router.get("/farms", async (req: any, res: any) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+
+// ── ดูวัวทั้งหมดของหมอ ────────────────────────────────────────────────────
+router.get("/vet-bulls/my/:vet_id", async (req, res) => {
+  try {
+    const { vet_id } = req.params;
+    const rows = await queryAsync(
+      `SELECT 
+        vb.vet_bulls_id, vb.ref_bulls_id, vb.bulls_semen_stock, vb.bulls_price_per_dose,
+        bs.bulls_name, bs.bulls_breed, bs.bulls_age, bs.bulls_characteristics,
+        bs.bulls_HealthStatus, bs.ref_farm_id,
+        f.frams_name,
+        bi.bulls_image1, bi.bulls_image2, bi.bulls_image3, bi.bulls_image4, bi.bulls_image5
+       FROM tb_vet_bulls vb
+       JOIN tb_bull_sires bs ON vb.ref_bulls_id = bs.bulls_id
+       LEFT JOIN tb_farms f ON bs.ref_farm_id = f.frams_id
+       LEFT JOIN tb_bulls_images bi ON bs.bulls_id = bi.ref_bulls_id
+       WHERE vb.ref_vetexperts_id = ?
+       ORDER BY vb.created_at DESC`,
+      [vet_id]
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── ดูฟาร์มทั้งหมด ────────────────────────────────────────────────────────
+router.get("/vet-bulls/farms", async (req, res) => {
+  try {
+    const rows = await queryAsync(
+      `SELECT frams_id, frams_name, frams_province, frams_district FROM tb_farms ORDER BY frams_name ASC`
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── ดูวัวในฟาร์ม ──────────────────────────────────────────────────────────
+router.get("/vet-bulls/bulls-in-farm/:farm_id", async (req, res) => {
+  try {
+    const { farm_id } = req.params;
+    const rows = await queryAsync(
+      `SELECT bulls_id, bulls_name, bulls_breed FROM tb_bull_sires WHERE ref_farm_id = ?`,
+      [farm_id]
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── สร้างฟาร์มใหม่ ────────────────────────────────────────────────────────
+router.post("/vet-bulls/farms/create", async (req, res) => {
+  try {
+    const { frams_name, frams_province, frams_district, frams_locality, frams_address } = req.body;
+    if (!frams_name) return res.status(400).json({ error: "กรุณากรอกชื่อฟาร์ม" });
+
+    const result: any = await queryAsync(
+      `INSERT INTO tb_farms (frams_name, frams_province, frams_district, frams_locality, frams_address)
+       VALUES (?, ?, ?, ?, ?)`,
+      [frams_name, frams_province || null, frams_district || null, frams_locality || null, frams_address || null]
+    );
+    return res.status(201).json({ message: "สร้างฟาร์มสำเร็จ", frams_id: result.insertId });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── สร้างวัวใหม่ ──────────────────────────────────────────────────────────
+router.post("/vet-bulls/bulls/create", async (req, res) => {
+  try {
+    const { bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_HealthStatus, ref_farm_id } = req.body;
+    if (!bulls_name || !ref_farm_id) return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+
+    const result: any = await queryAsync(
+      `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_HealthStatus, ref_farm_id, bulls_contest_records)
+       VALUES (?, ?, ?, ?, ?, ?, '')`,
+      [bulls_name, bulls_breed || null, bulls_age || null, bulls_characteristics || null, bulls_HealthStatus || null, ref_farm_id]
+    );
+    return res.status(201).json({ message: "สร้างข้อมูลวัวสำเร็จ", bulls_id: result.insertId });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── เพิ่มวัวเข้าสต็อกหมอ + บันทึกรูป ────────────────────────────────────
+router.post("/vet-bulls/add", async (req, res) => {
+  try {
+    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose, images } = req.body;
+    // images = string[] URL จาก Cloudinary (1-5 รูป)
+
+    if (!vet_id || !bulls_id || !images || images.length === 0)
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบและอัพโหลดรูปอย่างน้อย 1 รูป" });
+
+    await queryAsync("START TRANSACTION");
+    try {
+      // เพิ่มใน tb_vet_bulls
+      await queryAsync(
+        `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
+         VALUES (?, ?, ?, ?)`,
+        [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0]
+      );
+
+      // บันทึกรูป
+      const imgs = [...images, null, null, null, null, null].slice(0, 5);
+      await queryAsync(
+        `INSERT INTO tb_bulls_images (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
+           bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
+           bulls_image5 = VALUES(bulls_image5)`,
+        [bulls_id, ...imgs]
+      );
+
+      await queryAsync("COMMIT");
+      return res.status(201).json({ message: "เพิ่มวัวเข้าสต็อกสำเร็จ" });
+    } catch (e) {
+      await queryAsync("ROLLBACK");
+      throw e;
+    }
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// ── แก้ไข stock + ราคา ────────────────────────────────────────────────────
+router.put("/vet-bulls/update/:vet_bull_id", async (req, res) => {
+  try {
+    const { vet_bull_id } = req.params;
+    const { bulls_semen_stock, bulls_price_per_dose } = req.body;
+
+    const result: any = await queryAsync(
+      `UPDATE tb_vet_bulls SET bulls_semen_stock = ?, bulls_price_per_dose = ?, updated_at = NOW()
+       WHERE vet_bulls_id = ?`,
+      [bulls_semen_stock, bulls_price_per_dose, vet_bull_id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบข้อมูล" });
+    return res.status(200).json({ message: "อัพเดตสำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});

@@ -190,57 +190,6 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 
-
-
-// edit profile *****
-// router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
-//   try {
-//     const id = +req.params.id;
-//     let farmer: FarmerPostRequest = req.body;
-
-//     // กำหนด type ให้ result 
-//     let sql = mysql.format("SELECT * FROM tb_farmers WHERE farmers_id = ?", [id]);
-//     let result = await queryAsync(sql) as FarmerPostRequest[];
-
-//     if (result.length === 0) {
-//       return res.status(404).json({ error: "Farmer not found" });
-//     }
-//     const farmerOriginal = result[0];
-
-//     // อัพโหลดรูปใหม่ถ้ามี
-//     if (req.file) {
-//       const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-//         folder: "farmers_profile",
-//       });
-//       farmer.profile_image = uploadResult.secure_url;
-//     }
-
-//     const updatedFarmer = { ...farmerOriginal, ...farmer };
-
-//     sql =
-//       "UPDATE `tb_farmers` SET `farmers_name`=?, `farmers_phonenumber`=?, `farmers_email`=?, `farmers_profile_image`=?,  WHERE `farmers_id`=?";
-//     sql = mysql.format(sql, [
-//       updatedFarmer.farm_name,
-//       updatedFarmer.phonenumber,
-//       updatedFarmer.farmer_email,
-//       updatedFarmer.profile_image,
-//       id,
-//     ]);
-
-//     conn.query(sql, (err, result) => {
-//       if (err) throw err;
-//       res.status(200).json({
-//         message: "Profile updated successfully",
-//         affected_row: (result as any).affectedRows,
-//         profile_image: updatedFarmer.profile_image,
-//       });
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Update failed" });
-//   }
-// });
-
 router.put("/edit/:id", upload.single("profile_image"), async (req: Request, res: Response) => {
   try {
     const id = +req.params.id;
@@ -566,4 +515,53 @@ router.delete("/like_bull/:like_id", (req: Request, res: Response) => {
     }
     return res.status(200).json({ message: "ลบรายการถูกใจสำเร็จ" });
   });
+});
+
+router.get("/farmers/stats/:farmer_id", async (req, res) => {
+  try {
+    const { farmer_id } = req.params;
+
+    const [[bookings], [likes], [successData]] = await Promise.all([
+
+      // จำนวนประวัติการจองทั้งหมด
+      queryAsync(
+        `SELECT COUNT(*) AS total FROM tb_queue_bookings WHERE ref_farmers_id = ?`,
+        [farmer_id]
+      ) as any,
+
+      // จำนวน like วัวของหมอคนนี้
+      queryAsync(
+        `SELECT COUNT(*) AS total FROM tb_farmers_like fl
+         JOIN tb_vet_bulls vb ON fl.ref_bulls_id = vb.ref_bulls_id
+         WHERE vb.ref_farmers_id = ?`,
+        [farmer_id]
+      ) as any,
+
+      // อัตราสำเร็จ (accepted / total ที่ไม่ใช่ pending)
+      queryAsync(
+        `SELECT 
+           COUNT(*) AS total,
+           SUM(CASE WHEN bookings_status = 'accepted' THEN 1 ELSE 0 END) AS accepted
+         FROM tb_queue_bookings
+         WHERE ref_farmers_id = ?
+           AND bookings_status IN ('accepted', 'rejected')`,
+        [farmer_id]
+      ) as any,
+
+    ]);
+
+    const total    = successData.total    ?? 0;
+    const accepted = successData.accepted ?? 0;
+    const rate     = total > 0
+      ? Math.round(accepted / total * 100)
+      : 0;
+
+    return res.status(200).json({
+      total_bookings: bookings.total ?? 0,
+      total_likes:    likes.total    ?? 0,
+      success_rate:   rate,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });

@@ -265,7 +265,7 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
 
 
 // GET /insemination/my-overview/:Vetexport_id
-router.get("vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Response) => {
+router.get("/vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Response) => {
   const { vetexpert_id } = req.params;
 
   // กัน NaN ก่อน query
@@ -294,7 +294,7 @@ router.get("vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Res
 
 
 // GET /insemination/stats/my-by-vet/:Vetexport_id
-router.get("vet/insemination/my-by-vet/:vetexpert_id", (req: Request, res: Response) => {
+router.get("/vet/insemination/my-by-vet/:vetexpert_id", (req: Request, res: Response) => {
   const { vetexpert_id } = req.params;
 
   const sql = `
@@ -323,7 +323,7 @@ router.get("vet/insemination/my-by-vet/:vetexpert_id", (req: Request, res: Respo
 
 
 // GET /insemination/stats/my-by-bull/:Vetexport_id
-router.get("vet/insemination/my-by-bull/:vetexpert_id", (req: Request, res: Response) => {
+router.get("/vet/insemination/my-by-bull/:vetexpert_id", (req: Request, res: Response) => {
   const { vetexpert_id } = req.params;
 
   const sql = `

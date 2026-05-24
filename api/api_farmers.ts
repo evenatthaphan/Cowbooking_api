@@ -532,8 +532,8 @@ router.get("/farmers/stats/:farmer_id", async (req, res) => {
       // จำนวน like วัวของหมอคนนี้
       queryAsync(
         `SELECT COUNT(*) AS total FROM tb_farmers_like fl
-         JOIN tb_vet_bulls vb ON fl.ref_bulls_id = vb.ref_bulls_id
-         WHERE vb.ref_farmers_id = ?`,
+         JOIN tb_bull_sires bs ON fl.ref_bulls_id = bs.bulls_id
+         WHERE fl.ref_farmers_id = ?`,
         [farmer_id]
       ) as any,
 

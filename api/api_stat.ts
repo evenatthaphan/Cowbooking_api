@@ -187,7 +187,7 @@ router.get("/insemination/my-by-vet/:farmer_id", (req: Request, res: Response) =
       COUNT(*) - SUM(r.is_success)                    AS failed,
       ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)    AS success_rate
     FROM tb_insemination_records r
-    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexpert_id
+    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexperts_id
     WHERE r.ref_farmer_id = ?
     GROUP BY r.ref_vetexpert_id
     ORDER BY success_rate DESC
@@ -306,7 +306,7 @@ router.get("vet/insemination/my-by-vet/:vetexpert_id", (req: Request, res: Respo
       COUNT(*) - SUM(r.is_success)                    AS failed,
       ROUND(SUM(r.is_success) / COUNT(*) * 100, 2)    AS success_rate
     FROM tb_insemination_records r
-    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexpert_id
+    JOIN tb_vetexperts v ON r.ref_vetexpert_id = v.vetexperts_id
     WHERE r.ref_vetexpert_id = ?
     GROUP BY r.ref_vetexpert_id
     ORDER BY success_rate DESC

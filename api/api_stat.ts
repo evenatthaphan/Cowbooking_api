@@ -275,7 +275,7 @@ router.get("vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Res
 
   const sql = `
     SELECT 
-      COUNT(*)                                                   AS total,
+      COUNT(*)                                                  AS total,
       COALESCE(SUM(is_success), 0)                              AS success,
       COUNT(*) - COALESCE(SUM(is_success), 0)                   AS failed,
       ROUND(SUM(is_success) / NULLIF(COUNT(*), 0) * 100, 2)     AS success_rate

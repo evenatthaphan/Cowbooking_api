@@ -269,9 +269,9 @@ router.get("/insemination/my-overview/:vetexpert_id", (req: Request, res: Respon
   const { vetexpert_id } = req.params;
 
   // กัน NaN ก่อน query
-  if (!vetexpert_id || isNaN(Number(vetexpert_id))) {
-    return res.status(400).json({ error: "Invalid vetexpert_id" });
-  }
+  // if (!vetexpert_id || isNaN(Number(vetexpert_id))) {
+  //   return res.status(400).json({ error: "Invalid vetexpert_id" });
+  // }
 
   const sql = `
     SELECT 

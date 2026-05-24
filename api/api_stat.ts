@@ -265,7 +265,7 @@ router.get("/insemination/top-bulls", (req: Request, res: Response) => {
 
 
 // GET /insemination/my-overview/:Vetexport_id
-router.get("/insemination/my-overview/:vetexpert_id", (req: Request, res: Response) => {
+router.get("vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Response) => {
   const { vetexpert_id } = req.params;
 
   // กัน NaN ก่อน query
@@ -292,31 +292,9 @@ router.get("/insemination/my-overview/:vetexpert_id", (req: Request, res: Respon
   });
 });
 
-// router.get("/insemination/my-overview/:Vetexport_id", (req: Request, res: Response) => {
-//   const { Vetexport_id } = req.params;
-
-//   const sql = `
-//     SELECT 
-//       COUNT(*)                                        AS total,
-//       SUM(is_success)                                 AS success,
-//       COUNT(*) - SUM(is_success)                      AS failed,
-//       ROUND(SUM(is_success) / COUNT(*) * 100, 2)      AS success_rate
-//     FROM tb_insemination_records
-//     WHERE ref_vetexpert_id = ?
-//   `;
-
-//   conn.query(sql, [Vetexport_id], (err, rows: any) => {
-//     if (err) {
-//       console.error("Error fetching my overview:", err);
-//       return res.status(500).json({ error: "Error fetching my overview" });
-//     }
-//     return res.status(200).json(rows[0]);
-//   });
-// });
-
 
 // GET /insemination/stats/my-by-vet/:Vetexport_id
-router.get("/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response) => {
+router.get("vet/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response) => {
   const { Vetexport_id } = req.params;
 
   const sql = `
@@ -345,7 +323,7 @@ router.get("/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response
 
 
 // GET /insemination/stats/my-by-bull/:Vetexport_id
-router.get("/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Response) => {
+router.get("vet/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Response) => {
   const { Vetexport_id } = req.params;
 
   const sql = `

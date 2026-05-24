@@ -294,8 +294,8 @@ router.get("vet/insemination/my-overview/:vetexpert_id", (req: Request, res: Res
 
 
 // GET /insemination/stats/my-by-vet/:Vetexport_id
-router.get("vet/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Response) => {
-  const { Vetexport_id } = req.params;
+router.get("vet/insemination/my-by-vet/:vetexpert_id", (req: Request, res: Response) => {
+  const { vetexpert_id } = req.params;
 
   const sql = `
     SELECT 
@@ -312,7 +312,7 @@ router.get("vet/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Respo
     ORDER BY success_rate DESC
   `;
 
-  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+  conn.query(sql, [vetexpert_id], (err, rows: any) => {
     if (err) {
       console.error("Error fetching my stats by vet:", err);
       return res.status(500).json({ error: "Error fetching my stats by vet" });
@@ -323,8 +323,8 @@ router.get("vet/insemination/my-by-vet/:Vetexport_id", (req: Request, res: Respo
 
 
 // GET /insemination/stats/my-by-bull/:Vetexport_id
-router.get("vet/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Response) => {
-  const { Vetexport_id } = req.params;
+router.get("vet/insemination/my-by-bull/:vetexpert_id", (req: Request, res: Response) => {
+  const { vetexpert_id } = req.params;
 
   const sql = `
     SELECT 
@@ -341,7 +341,7 @@ router.get("vet/insemination/my-by-bull/:Vetexport_id", (req: Request, res: Resp
     ORDER BY success_rate DESC
   `;
 
-  conn.query(sql, [Vetexport_id], (err, rows: any) => {
+  conn.query(sql, [vetexpert_id], (err, rows: any) => {
     if (err) {
       console.error("Error fetching my stats by bull:", err);
       return res.status(500).json({ error: "Error fetching my stats by bull" });

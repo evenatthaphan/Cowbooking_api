@@ -20,7 +20,7 @@ router.post("/queue/book", async (req, res) => {
     // check time and day are FREE
     const schedules: any = await queryAsync(
       "SELECT * FROM tb_vet_schedules WHERE schedules_id = ? AND ref_vetexperts_id = ? AND schedules_is_booked = false",
-      [schedule_id, vet_expert_id]
+      [schedule_id, vet_expert_id],
     );
 
     if (schedules.length === 0) {
@@ -59,9 +59,10 @@ router.post("/queue/book", async (req, res) => {
     ]);
 
     // update status vet_schedules that is_booked = true
-    await queryAsync("UPDATE tb_vet_schedules SET schedules_is_booked = true WHERE schedules_id = ?", [
-      schedule_id,
-    ]);
+    await queryAsync(
+      "UPDATE tb_vet_schedules SET schedules_is_booked = true WHERE schedules_id = ?",
+      [schedule_id],
+    );
 
     // send back to response
     return res.status(201).json({
@@ -72,7 +73,7 @@ router.post("/queue/book", async (req, res) => {
   } catch (err: any) {
     console.error(
       "Error inserting booking:",
-      err.sqlMessage || err.message || err
+      err.sqlMessage || err.message || err,
     );
     return res.status(500).json({
       error: "Internal server error",
@@ -118,7 +119,7 @@ router.get("/bookings/farmer", async (req, res) => {
     const { farmer_id, vet_expert_id } = req.query;
 
     // let sql = `
-    //   SELECT 
+    //   SELECT
     //     b.queue_bookings_id,
     //     b.ref_farmers_id,
     //     b.ref_vetexperts_id,
@@ -216,8 +217,6 @@ router.get("/bookings/vet/:vet_expert_id", async (req, res) => {
   }
 });
 
-
-
 // vetexpert update status booking ****
 router.put("/bookings/update/:booking_id", async (req, res) => {
   try {
@@ -233,7 +232,7 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
     // ดึงข้อมูล booking ก่อน เพื่อเอา dose และ bull_id
     const bookings: any = await queryAsync(
       `SELECT bookings_dose, ref_bulls_id FROM tb_queue_bookings WHERE queue_bookings_id = ?`,
-      [booking_id]
+      [booking_id],
     );
 
     if (bookings.length === 0) {
@@ -247,12 +246,12 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 
     try {
       // update สถานะ booking
-      const updateBooking = await queryAsync(
+      const updateBooking = (await queryAsync(
         `UPDATE tb_queue_bookings
          SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
          WHERE queue_bookings_id = ?`,
-        [statusLower, vet_notes || null, booking_id]
-      ) as any;
+        [statusLower, vet_notes || null, booking_id],
+      )) as any;
 
       if (updateBooking.affectedRows === 0) {
         await queryAsync("ROLLBACK");
@@ -261,10 +260,10 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 
       // ถ้า accepted และมี bull_id และ dose → ลดจำนวนโดส
       if (statusLower === "accepted" && ref_bulls_id && bookings_dose) {
-       // ตรวจว่าโดสเพียงพอก่อน
+        // ตรวจว่าโดสเพียงพอก่อน
         const bulls: any = await queryAsync(
-          `SELECT bulls_semen_stock FROM tb_vet_bulls WHERE ref_bulls_id = ?`,  
-          [ref_bulls_id]
+          `SELECT bulls_semen_stock FROM tb_vet_bulls WHERE ref_bulls_id = ?`,
+          [ref_bulls_id],
         );
 
         if (bulls.length === 0) {
@@ -272,7 +271,7 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
           return res.status(404).json({ error: "Bull not found" });
         }
 
-        const currentDose = bulls[0].bulls_semen_stock; 
+        const currentDose = bulls[0].bulls_semen_stock;
 
         if (currentDose < bookings_dose) {
           await queryAsync("ROLLBACK");
@@ -285,9 +284,35 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 
         // ลดโดส
         await queryAsync(
-          `UPDATE tb_vet_bulls SET bulls_semen_stock = bulls_semen_stock - ? WHERE ref_bulls_id = ?`,  // ✅ แก้ตรงนี้
-          [bookings_dose, ref_bulls_id]
+          `UPDATE tb_vet_bulls SET bulls_semen_stock = bulls_semen_stock - ? WHERE ref_bulls_id = ?`, 
+          [bookings_dose, ref_bulls_id],
         );
+
+        // ดึง farmer_id จาก booking
+        const booking: any = await queryAsync(
+          "SELECT ref_farmers_id, ref_schedules_id FROM tb_queue_bookings WHERE queue_bookings_id = ?",
+          [booking_id],
+        );
+
+        if (booking.length > 0) {
+          const farmerId = booking[0].ref_farmers_id;
+          const isAccepted = statusLower === "accepted";
+
+          await queryAsync(
+            `INSERT INTO tb_notifications
+       (ref_farmers_id, noti_type, noti_title, noti_message, ref_booking_id)
+       VALUES (?, ?, ?, ?, ?)`,
+            [
+              farmerId,
+              isAccepted ? "booking_accepted" : "booking_rejected",
+              isAccepted ? "คิวได้รับการตอบรับ ✓" : "คิวถูกปฏิเสธ",
+              isAccepted
+                ? "สัตวบาลได้ยืนยันรับคิวของคุณแล้ว"
+                : `สัตวบาลปฏิเสธคิวของคุณ${vet_notes ? ": " + vet_notes : ""}`,
+              booking_id,
+            ],
+          );
+        }
       }
 
       await queryAsync("COMMIT");
@@ -298,14 +323,15 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
           ? { dose_deducted: bookings_dose }
           : {}),
       });
-
     } catch (innerErr) {
       await queryAsync("ROLLBACK");
       throw innerErr;
     }
-
   } catch (err: any) {
-    console.error("Error updating booking:", err.sqlMessage || err.message || err);
+    console.error(
+      "Error updating booking:",
+      err.sqlMessage || err.message || err,
+    );
     return res.status(500).json({
       error: "Internal server error",
       details: err.sqlMessage || err.message,
@@ -361,8 +387,6 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 //   }
 // });
 
-
-
 // cancel booking ***
 router.delete("/queue/cancel/:booking_id", async (req, res) => {
   try {
@@ -375,7 +399,7 @@ router.delete("/queue/cancel/:booking_id", async (req, res) => {
     // check booking is existed
     const booking: any = await queryAsync(
       "SELECT ref_schedules_id FROM tb_queue_bookings WHERE queue_bookings_id = ?",
-      [booking_id]
+      [booking_id],
     );
 
     if (booking.length === 0) {
@@ -385,16 +409,23 @@ router.delete("/queue/cancel/:booking_id", async (req, res) => {
     const schedule_id = booking[0].schedule_id;
 
     // deleted booking
-    await queryAsync("DELETE FROM tb_queue_bookings WHERE queue_bookings_id = ?", [booking_id]);
+    await queryAsync(
+      "DELETE FROM tb_queue_bookings WHERE queue_bookings_id = ?",
+      [booking_id],
+    );
 
-    // update status schedule 
-    await queryAsync("UPDATE tb_vet_schedules SET schedules_is_booked = false WHERE schedules_id = ?", [
-      schedule_id,
-    ]);
+    // update status schedule
+    await queryAsync(
+      "UPDATE tb_vet_schedules SET schedules_is_booked = false WHERE schedules_id = ?",
+      [schedule_id],
+    );
 
     return res.status(200).json({ message: "Booking cancelled successfully" });
   } catch (err: any) {
-    console.error("Error cancelling booking:", err.sqlMessage || err.message || err);
+    console.error(
+      "Error cancelling booking:",
+      err.sqlMessage || err.message || err,
+    );
     return res.status(500).json({
       error: "Internal server error",
       details: err.sqlMessage || err.message,
@@ -434,7 +465,7 @@ router.get("/bookings/farmer/:farmer_id", async (req, res) => {
       ORDER BY b.created_at DESC
     `;
 
-    const results = await queryAsync(sql, [farmer_id]);  
+    const results = await queryAsync(sql, [farmer_id]);
     return res.status(200).json(results);
   } catch (err) {
     console.error("Error fetching farmer bookings:", err);

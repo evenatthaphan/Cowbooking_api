@@ -565,3 +565,45 @@ router.get("/farmers/stats/:farmer_id", async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
+
+// ── ดึงการแจ้งเตือนของเกษตรกร ─────────────────────────────────────────────
+router.get("/notifications/farmer/:farmer_id", async (req, res) => {
+  try {
+    const { farmer_id } = req.params;
+    const rows = await queryAsync(
+      `SELECT * FROM tb_notifications
+       WHERE ref_farmers_id = ?
+       ORDER BY created_at DESC LIMIT 50`,
+      [farmer_id]
+    );
+    return res.status(200).json(rows);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ── อ่านแล้ว ───────────────────────────────────────────────────────────────
+router.put("/notifications/read/:noti_id", async (req, res) => {
+  try {
+    await queryAsync(
+      "UPDATE tb_notifications SET is_read = 1 WHERE noti_id = ?",
+      [req.params.noti_id]
+    );
+    return res.status(200).json({ message: "ok" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ── อ่านทั้งหมด ────────────────────────────────────────────────────────────
+router.put("/notifications/read-all/:farmer_id", async (req, res) => {
+  try {
+    await queryAsync(
+      "UPDATE tb_notifications SET is_read = 1 WHERE ref_farmers_id = ?",
+      [req.params.farmer_id]
+    );
+    return res.status(200).json({ message: "ok" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});

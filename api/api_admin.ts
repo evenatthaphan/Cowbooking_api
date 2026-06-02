@@ -26,12 +26,10 @@ router.get("/getadmins", (req, res) => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
 // VET APPROVAL
-// ═══════════════════════════════════════════════════════════════════════════
  
 // ── รายการ vet รอยืนยัน (ทุก type) ───────────────────────────────────────
-router.get("/vet/pending", requireAdminType(3), async (req, res) => {
+router.get("/vet/pending", requireAdminType(2), async (req, res) => {
   try {
     const rows = await queryAsync(
       `SELECT vetexperts_id, vetexperts_name, vetexperts_email,
@@ -48,7 +46,7 @@ router.get("/vet/pending", requireAdminType(3), async (req, res) => {
 });
  
 // ── อนุมัติ / ปฏิเสธ vet (ทุก type) ──────────────────────────────────────
-router.put("/vet/approve/:vet_id", requireAdminType(3), async (req, res) => {
+router.put("/vet/approve/:vet_id", requireAdminType(2), async (req, res) => {
   try {
     const { vet_id } = req.params;
     const { status } = req.body; // 1 = อนุมัติ, 2 = ปฏิเสธ
@@ -253,10 +251,10 @@ router.get("/list", async (req: Request, res: Response) => {
  
 
 // POST /admin/create
-// เพิ่ม admin ใหม่ (เฉพาะ master=1 และ super=2 เท่านั้น)
+// เพิ่ม admin ใหม่ (เฉพาะ master=1 เท่านั้น)
 // Body: admins_name, admins_email, admins_password,
 //       admins_phonenumber, admins_address, admin_type
-router.post("/create", requireType(2), async (req: any, res: any) => {
+router.post("/create", requireType(1), async (req: any, res: any) => {
   const {
     admins_name,
     admins_email,
@@ -275,13 +273,13 @@ router.post("/create", requireType(2), async (req: any, res: any) => {
   }
  
   // Super (type=2) สร้างได้เฉพาะ admin (type=3) เท่านั้น
-  const requesterType = Number(req.headers["admin-type"]);
-  if (requesterType === 2 && Number(admin_type) !== 3) {
-    return res.status(403).json({
-      success: false,
-      message: "Super admin สร้างได้เฉพาะ admin (type=3) เท่านั้น",
-    });
-  }
+  // const requesterType = Number(req.headers["admin-type"]);
+  // if (requesterType === 2 && Number(admin_type) !== 3) {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Super admin สร้างได้เฉพาะ admin (type=3) เท่านั้น",
+  //   });
+  // }
  
   try {
     // เช็ค email ซ้ำ
@@ -711,14 +709,15 @@ router.get("/verify-vet", async (req: Request, res: Response) => {
 router.put("/verify-vet/:id", async (req: any, res: any) => {
   const { id } = req.params;
   const { status } = req.body;
- 
+  const adminId = req.user?.admins_id; // ดึงจาก JWT token
+
   if (status === undefined || ![1, 2].includes(Number(status))) {
     return res.status(400).json({
       success: false,
       message: "status ต้องเป็น 1 (อนุมัติ) หรือ 2 (ปฏิเสธ) เท่านั้น",
     });
   }
- 
+
   try {
     const existing = await queryAsync(
       "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?", [id]
@@ -726,12 +725,19 @@ router.put("/verify-vet/:id", async (req: any, res: any) => {
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: "ไม่พบ vetexpert" });
     }
- 
+
     await queryAsync(
-      "UPDATE tb_vetexperts SET vetexperts_status = ? WHERE vetexperts_id = ?",
-      [status, id]
+      `UPDATE tb_vetexperts 
+       SET vetexperts_status = ?, 
+           vetexperts_approved_by = ?
+       WHERE vetexperts_id = ?`,
+      [
+        status,
+        Number(status) === 1 ? adminId : null, // ถ้าอนุมัติใส่ adminId, ถ้าปฏิเสธเป็น null
+        id
+      ]
     );
- 
+
     const message = Number(status) === 1 ? "อนุมัติ vetexpert สำเร็จ" : "ปฏิเสธ vetexpert สำเร็จ";
     return res.status(200).json({ success: true, message });
   } catch (err) {

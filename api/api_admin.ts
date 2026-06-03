@@ -324,7 +324,7 @@ router.post("/create", requireType(1), async (req: any, res: any) => {
 // แก้ไขข้อมูล admin (master + super เท่านั้น)
 // Body: admins_name, admins_email, admins_phonenumber,
 //       admins_address, admin_type
-router.put("/update/:id", requireType(2), async (req: any, res: any) => {
+router.put("/update/:id", requireType(1), async (req: any, res: any) => {
   const { id } = req.params;
   const {
     admins_name,
@@ -708,13 +708,20 @@ router.get("/verify-vet", async (req: Request, res: Response) => {
 // Body: status → 1 = อนุมัติ, 2 = ปฏิเสธ
 router.put("/verify-vet/:id", async (req: any, res: any) => {
   const { id } = req.params;
-  const { status } = req.body;
-  const adminId = req.user?.admins_id; // ดึงจาก JWT token
+  const { status, admin_id } = req.body; // รับ admin_id มาจาก body
 
   if (status === undefined || ![1, 2].includes(Number(status))) {
     return res.status(400).json({
       success: false,
       message: "status ต้องเป็น 1 (อนุมัติ) หรือ 2 (ปฏิเสธ) เท่านั้น",
+    });
+  }
+
+  // เช็คว่าส่ง admin_id มาด้วยมั้ย
+  if (!admin_id) {
+    return res.status(400).json({
+      success: false,
+      message: "กรุณาระบุ admin_id",
     });
   }
 
@@ -733,7 +740,7 @@ router.put("/verify-vet/:id", async (req: any, res: any) => {
        WHERE vetexperts_id = ?`,
       [
         status,
-        Number(status) === 1 ? adminId : null, // ถ้าอนุมัติใส่ adminId, ถ้าปฏิเสธเป็น null
+        Number(status) === 1 ? admin_id : null,
         id
       ]
     );
@@ -745,6 +752,45 @@ router.put("/verify-vet/:id", async (req: any, res: any) => {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+// router.put("/verify-vet/:id", async (req: any, res: any) => {
+//   const { id } = req.params;
+//   const { status } = req.body;
+//   const adminId = req.user?.admins_id; // ดึงจาก JWT token
+
+//   if (status === undefined || ![1, 2].includes(Number(status))) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "status ต้องเป็น 1 (อนุมัติ) หรือ 2 (ปฏิเสธ) เท่านั้น",
+//     });
+//   }
+
+//   try {
+//     const existing = await queryAsync(
+//       "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?", [id]
+//     );
+//     if (existing.length === 0) {
+//       return res.status(404).json({ success: false, message: "ไม่พบ vetexpert" });
+//     }
+
+//     await queryAsync(
+//       `UPDATE tb_vetexperts 
+//        SET vetexperts_status = ?, 
+//            vetexperts_approved_by = ?
+//        WHERE vetexperts_id = ?`,
+//       [
+//         status,
+//         Number(status) === 1 ? adminId : null, // ถ้าอนุมัติใส่ adminId, ถ้าปฏิเสธเป็น null
+//         id
+//       ]
+//     );
+
+//     const message = Number(status) === 1 ? "อนุมัติ vetexpert สำเร็จ" : "ปฏิเสธ vetexpert สำเร็จ";
+//     return res.status(200).json({ success: true, message });
+//   } catch (err) {
+//     console.error("PUT /admin/verify-vet/:id error:", err);
+//     return res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FARM MANAGEMENT

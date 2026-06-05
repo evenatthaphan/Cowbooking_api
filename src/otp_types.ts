@@ -13,27 +13,25 @@ export interface TBSVerifyOTPBody {
   otp: string
 }
 
+// แก้ให้ตรงกับ response จริงของ ThaiBulkSMS
 export interface TBSRequestOTPResponse {
-  data: {
-    token: string
-    status: string
-  }
+  status: string  // "success"
+  token: string   // ← อยู่ระดับบนสุด ไม่มี data.token
+  refno: string
 }
 
 export interface TBSVerifyOTPResponse {
-  data: {
-    status: string
-  }
+  status: string
 }
 
 // ---- Request Body จาก Client ----
 
 export interface RequestOTPDto {
-  phone: string  // เช่น "0812345678"
+  phone: string
 }
 
 export interface VerifyOTPDto {
-  otp: string    // รหัส 6 หลักที่ user กรอก
+  otp: string
 }
 
 export interface ResetPasswordDto {
@@ -46,5 +44,5 @@ export interface OTPSession {
   token: string
   phone: string
   canResetPassword: boolean
-  expiresAt: number  // Unix timestamp (ms)
+  expiresAt: number
 }

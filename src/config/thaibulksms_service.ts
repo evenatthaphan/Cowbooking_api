@@ -24,10 +24,6 @@ export class ThaiBulkSMSService {
     this.secret = secret;
   }
 
-  /**
-   * ส่ง OTP ไปยังเบอร์โทรศัพท์ที่ระบุ
-   * @returns token ที่ใช้สำหรับ verify ในขั้นตอนถัดไป
-   */
   async requestOTP(phone: string): Promise<string> {
     const normalizedPhone = phone
       .replace(/^\+66/, "0")
@@ -48,20 +44,12 @@ export class ThaiBulkSMSService {
         body,
       );
       console.log("[TBS Response success]", JSON.stringify(data));
-      return data.data.token;
+      return data.token; // ← แก้จาก data.data.token
     } catch (err) {
-      if (err instanceof AxiosError) {
-        console.error("[TBS Error] status:", err.response?.status);
-        console.error("[TBS Error] data:", JSON.stringify(err.response?.data));
-      }
       throw this.handleError(err, "ไม่สามารถส่ง OTP ได้");
     }
   }
 
-  /**
-   * ตรวจสอบรหัส OTP ที่ user กรอก
-   * @returns true ถ้าถูกต้อง, throw error ถ้าผิด
-   */
   async verifyOTP(token: string, otp: string): Promise<true> {
     const body: TBSVerifyOTPBody = {
       key: this.key,
@@ -80,10 +68,8 @@ export class ThaiBulkSMSService {
 
   private handleError(err: unknown, fallbackMessage: string): Error {
     if (err instanceof AxiosError) {
-      // log ดู response จริงจาก TBS
       console.error("[TBS Error] status:", err.response?.status);
       console.error("[TBS Error] data:", JSON.stringify(err.response?.data));
-
       const detail = err.response?.data?.message ?? fallbackMessage;
       return new Error(
         typeof detail === "string" ? detail : JSON.stringify(detail),
@@ -93,5 +79,4 @@ export class ThaiBulkSMSService {
   }
 }
 
-// Singleton — ใช้ instance เดียวตลอด app
 export const tbsService = new ThaiBulkSMSService();

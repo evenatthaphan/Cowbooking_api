@@ -39,16 +39,21 @@ export class ThaiBulkSMSService {
       secret: this.secret,
       msisdn: normalizedPhone,
     };
-    
-    console.log('[TBS Request] body:', JSON.stringify(body));
-    
+
+    console.log("[TBS Request] body:", JSON.stringify(body));
+
     try {
       const { data } = await axios.post<TBSRequestOTPResponse>(
         `${TBS_BASE_URL}/request`,
         body,
       );
+      console.log("[TBS Response success]", JSON.stringify(data));
       return data.data.token;
     } catch (err) {
+      if (err instanceof AxiosError) {
+        console.error("[TBS Error] status:", err.response?.status);
+        console.error("[TBS Error] data:", JSON.stringify(err.response?.data));
+      }
       throw this.handleError(err, "ไม่สามารถส่ง OTP ได้");
     }
   }

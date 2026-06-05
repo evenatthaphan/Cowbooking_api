@@ -1,6 +1,5 @@
 import path from "path";
-import express from "express";
-import bodyParser from "body-parser";
+import express from "express";import session from "express-session";import bodyParser from "body-parser";
 import { router as index } from "./api/index";
 import { router as farmers } from "./api/api_farmers";
 import { router as vetexpert } from "./api/api_vetexpert";
@@ -10,6 +9,7 @@ import { router as queuebook} from "./api/api_queue_bookings";
 import { router as bull } from "./api/api_bulls";
 import { router as admin } from "./api/api_admin"
 import { router as stat } from "./api/api_stat";
+import resetPassword from "./api/api_resetpassword";
 import cors from "cors";
 
 // Object app => webApi
@@ -20,6 +20,14 @@ app.use(
       origin: "*",
     })
   );
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+}));
 app.use(bodyParser.text()); 
 app.use(bodyParser.json()); 
 
@@ -39,3 +47,4 @@ app.use("/queuebook", queuebook)
 app.use("/bull", bull)
 app.use("/admin", admin)
 app.use("/stats", stat)
+app.use("/reset-password", resetPassword)

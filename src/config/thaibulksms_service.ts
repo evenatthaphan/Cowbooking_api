@@ -39,7 +39,9 @@ export class ThaiBulkSMSService {
       secret: this.secret,
       msisdn: normalizedPhone,
     };
-
+    
+    console.log('[TBS Request] body:', JSON.stringify(body));
+    
     try {
       const { data } = await axios.post<TBSRequestOTPResponse>(
         `${TBS_BASE_URL}/request`,

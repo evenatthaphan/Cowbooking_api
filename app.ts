@@ -9,7 +9,7 @@ import { router as queuebook} from "./api/api_queue_bookings";
 import { router as bull } from "./api/api_bulls";
 import { router as admin } from "./api/api_admin"
 import { router as stat } from "./api/api_stat";
-import resetPassword from "./api/api_resetpassword";
+import { router as resetPassword } from "./api/api_resetpassword";
 import cors from "cors";
 
 // Object app => webApi

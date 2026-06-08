@@ -549,12 +549,43 @@ router.post("/vet-bulls/bulls/create", async (req, res) => {
 });
 
 // ── เพิ่มวัวเข้าสต็อกหมอ + บันทึกรูป ────────────────────────────────────
-router.post("/vet-bulls/add", async (req, res) => {
+router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
   try {
-    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose, images } = req.body;
-    // images = string[] URL จาก Cloudinary (1-5 รูป)
+    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } = req.body;
+    const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+    const images: string[] = [];
 
-    if (!vet_id || !bulls_id || !images || images.length === 0)
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      for (const file of uploadedFiles) {
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          folder: "vet_bulls",
+        });
+        images.push(uploadResult.secure_url);
+        await fs.unlink(file.path);
+      }
+    }
+
+    const rawBodyImages = req.body.images;
+    if (rawBodyImages) {
+      if (Array.isArray(rawBodyImages)) {
+        images.push(...rawBodyImages.filter((img) => typeof img === "string" && img.trim()));
+      } else if (typeof rawBodyImages === "string") {
+        try {
+          const parsed = JSON.parse(rawBodyImages);
+          if (Array.isArray(parsed)) {
+            images.push(...parsed.filter((img) => typeof img === "string" && img.trim()));
+          } else if (rawBodyImages.trim()) {
+            images.push(rawBodyImages.trim());
+          }
+        } catch {
+          if (rawBodyImages.trim()) {
+            images.push(rawBodyImages.trim());
+          }
+        }
+      }
+    }
+
+    if (!vet_id || !bulls_id || images.length === 0)
       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบและอัพโหลดรูปอย่างน้อย 1 รูป" });
 
     await queryAsync("START TRANSACTION");
@@ -567,7 +598,7 @@ router.post("/vet-bulls/add", async (req, res) => {
       );
 
       // บันทึกรูป
-      const imgs = [...images, null, null, null, null, null].slice(0, 5);
+      const imgs = [...images, null, null, null, null].slice(0, 5);
       await queryAsync(
         `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
          VALUES (?, ?, ?, ?, ?, ?)

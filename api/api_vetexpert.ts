@@ -447,28 +447,7 @@ router.put(
     }
   },
 );
-// router.put("/vetexpert/update-profile/:vet_id", async (req, res) => {
-//   try {
-//     const { vet_id } = req.params;
-//     const { vetexperts_name, vetexperts_phonenumber, vetexperts_email, vetexperts_profile_image, vetexperts_license } = req.body;
 
-//     const sql = `
-//       UPDATE tb_vetexperts
-//       SET vetexperts_name = ?, vetexperts_phonenumber = ?, vetexperts_email = ?,
-//           vetexperts_profile_image = ?, vetexperts_license = ?
-//       WHERE vetexperts_id = ?
-//     `;
-//     const result: any = await queryAsync(sql, [
-//       vetexperts_name, vetexperts_phonenumber, vetexperts_email,
-//       vetexperts_profile_image, vetexperts_license, vet_id,
-//     ]);
-
-//     if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
-//     return res.status(200).json({ message: "Profile updated successfully" });
-//   } catch (err: any) {
-//     return res.status(500).json({ error: "Internal server error", details: err.message });
-//   }
-// });
 
 // เปลี่ยนรหัสผ่าน
 router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
@@ -845,5 +824,24 @@ router.post("/update-fcm-token", async (req: any, res: any) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+});
+
+router.delete("/vet-bulls/delete/:vetBullId", async (req, res) => {
+  try {
+    const vetBullId = +req.params.vetBullId;
+
+    const result: any = await queryAsync(
+      "DELETE FROM tb_vet_bulls WHERE vet_bulls_id = ?",
+      [vetBullId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "ไม่พบข้อมูลที่ต้องการลบ" });
+    }
+
+    return res.status(200).json({ message: "ลบสำเร็จ" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

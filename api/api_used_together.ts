@@ -253,7 +253,7 @@ router.post("/search", async (req, res) => {
       vb.bulls_semen_stock,
       vb.ref_vetexperts_id,
 
-      ve.vet_expert_name,
+      ve.vetexperts_name,
 
       f.frams_id AS farm_id,
       f.frams_name AS farm_name,
@@ -271,7 +271,7 @@ router.post("/search", async (req, res) => {
     FROM tb_bull_sires b
     JOIN tb_farms f ON b.ref_farm_id = f.frams_id
     LEFT JOIN tb_vet_bulls vb ON b.bulls_id = vb.ref_bulls_id
-    LEFT JOIN tb_vet_experts ve ON vb.ref_vetexperts_id = ve.vetexperts_id
+    LEFT JOIN tb_vetexperts ve ON vb.ref_vetexperts_id = ve.vetexperts_id
     LEFT JOIN tb_bulls_img bi ON b.bulls_id = bi.ref_bulls_id
     WHERE 1=1
   `;
@@ -339,7 +339,7 @@ router.post("/search", async (req, res) => {
           semen_stock: r.bulls_semen_stock,
 
           vet_id: r.ref_vetexperts_id,       
-          vet_name: r.vet_expert_name,        
+          vet_name: r.vetexperts_name,        
 
           farm: {
             farm_id: r.farm_id,

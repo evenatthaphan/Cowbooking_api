@@ -1,16 +1,136 @@
 import express from "express";
 import { FarmerPostRequest } from "../model/data_post_request";
-//import { BullRow } from "../model/data_post_request";
 import { Bull } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
 import { MysqlError } from "mysql";
 import { QueryError, RowDataPacket } from "mysql2";
-
+import jwt from "jsonwebtoken";
+import { Router, Request, Response } from "express";
 
 export const router = express.Router();
 
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_EXPIRES_IN = "7d";
+
+// router.post("/login", async (req: Request, res: Response) => {
+//   const { loginId, password } = req.body;
+
+//   if (!loginId || !password) {
+//     return res.status(400).json({ error: "loginId and password are required" });
+//   }
+
+//   try {
+//     // ── FARMER ──────────────────────────────────────────────
+//     const farmers = await queryAsync(
+//       "SELECT * FROM tb_farmers WHERE farmers_name = ? OR farmers_phonenumber = ? OR farmers_email = ?",
+//       [loginId, loginId, loginId]
+//     ) as any[];
+
+//     if (farmers.length > 0) {
+//       const farmer = farmers[0];
+
+//       const isMatch = await bcrypt.compare(password, farmer.farmers_hashpassword);
+//       if (!isMatch) {
+//         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//       }
+
+//       const { farmers_hashpassword, ...farmerSafe } = farmer;
+
+//       const token = jwt.sign(
+//         { userId: farmer.farmers_id, role: "farmer" },
+//         JWT_SECRET,
+//         { expiresIn: JWT_EXPIRES_IN }
+//       );
+
+//       return res.json({
+//         role: "farmer",
+//         message: "เข้าสู่ระบบสำเร็จ",
+//         token,
+//         user: farmerSafe,
+//       });
+//     }
+
+//     // ── VET ─────────────────────────────────────────────────
+//     const vets = await queryAsync(
+//       "SELECT * FROM tb_vetexperts WHERE vetexperts_name = ? OR vetexperts_phonenumber = ? OR vetexperts_email = ?",
+//       [loginId, loginId, loginId]
+//     ) as any[];
+
+//     if (vets.length > 0) {
+//       const vet = vets[0];
+
+//       if (vet.vetexperts_status === 0) {
+//         return res.status(403).json({ error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ" });
+//       }
+//       if (vet.vetexperts_status !== 1) {
+//         return res.status(403).json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
+//       }
+
+//       const isMatch = await bcrypt.compare(password, vet.vetexperts_hashpassword);
+//       if (!isMatch) {
+//         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//       }
+
+//       const { vetexperts_hashpassword, ...vetSafe } = vet;
+
+//       const token = jwt.sign(
+//         { userId: vet.vetexperts_id, role: "vet" },
+//         JWT_SECRET,
+//         { expiresIn: JWT_EXPIRES_IN }
+//       );
+
+//       return res.json({
+//         role: "vet",
+//         message: "เข้าสู่ระบบสำเร็จ",
+//         token,
+//         user: vetSafe,
+//       });
+//     }
+
+//     // ── ADMIN ────────────────────────────────────────────────
+//     const admins = await queryAsync(
+//       "SELECT * FROM tb_admins WHERE admins_name = ? OR admins_phonenumber = ? OR admins_email = ?",
+//       [loginId, loginId, loginId]
+//     ) as any[];
+
+//     if (admins.length > 0) {
+//       const admin = admins[0];
+
+//       const isMatch = await bcrypt.compare(password, admin.admins_password);
+//       if (!isMatch) {
+//         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+//       }
+
+//       const token = jwt.sign(
+//         { userId: admin.admins_id, role: "admin", adminType: admin.admin_type },
+//         JWT_SECRET,
+//         { expiresIn: JWT_EXPIRES_IN }
+//       );
+
+//       return res.json({
+//         role: "admin",
+//         message: "เข้าสู่ระบบสำเร็จ",
+//         token,
+//         user: {
+//           admins_id:            admin.admins_id,
+//           admins_name:          admin.admins_name,
+//           admins_email:         admin.admins_email,
+//           admins_phonenumber:   admin.admins_phonenumber,
+//           admins_address:       admin.admins_address,
+//           admin_type:           admin.admin_type,
+//           must_change_password: admin.must_change_password,
+//         },
+//       });
+//     }
+
+//     return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+
+//   } catch (err: any) {
+//     return res.status(500).json({ error: err.message });
+//   }
+// });
 
 
 router.post("/login", async (req, res) => {
@@ -131,6 +251,9 @@ router.post("/search", async (req, res) => {
 
       vb.bulls_price_per_dose,
       vb.bulls_semen_stock,
+      vb.ref_vetexperts_id,
+
+      ve.vet_expert_name,
 
       f.frams_id AS farm_id,
       f.frams_name AS farm_name,
@@ -148,6 +271,7 @@ router.post("/search", async (req, res) => {
     FROM tb_bull_sires b
     JOIN tb_farms f ON b.ref_farm_id = f.frams_id
     LEFT JOIN tb_vet_bulls vb ON b.bulls_id = vb.ref_bulls_id
+    LEFT JOIN tb_vet_experts ve ON vb.ref_vetexperts_id = ve.vetexperts_id
     LEFT JOIN tb_bulls_img bi ON b.bulls_id = bi.ref_bulls_id
     WHERE 1=1
   `;
@@ -214,6 +338,9 @@ router.post("/search", async (req, res) => {
           price_per_dose: r.bulls_price_per_dose,
           semen_stock: r.bulls_semen_stock,
 
+          vet_id: r.ref_vetexperts_id,       
+          vet_name: r.vet_expert_name,        
+
           farm: {
             farm_id: r.farm_id,
             farm_name: r.farm_name,
@@ -234,79 +361,6 @@ router.post("/search", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-// router.post("/search", async (req, res) => {
-//   const { keyword, province, district, locality } = req.body;
-
-//   let sql = `
-//     SELECT 
-//       b.bulls_id AS bull_id,
-//       b.bulls_name,
-//       b.bulls_breed,
-//       b.bulls_age,
-//       b.bulls_characteristics,
-//       b.price_per_dose,
-//       b.semen_stock,
-//       b.contest_records,
-//       f.id AS farm_id,
-//       f.name AS farm_name,
-//       f.province,
-//       f.district,
-//       f.locality,
-//       f.address,
-//       bi.image1
-//     FROM tb_bull_sires b
-//     JOIN Farms f ON b.farm_id = f.id
-//     LEFT JOIN BullImages bi ON b.id = bi.bull_id
-//     WHERE 1=1
-//   `;
-//   let params: any[] = [];
-
-//   // search by keyword
-//   if (keyword && keyword.trim() !== "") {
-//     sql += " AND (b.Bullname LIKE ? OR f.name LIKE ? OR b.Bullbreed LIKE ?)";
-//     params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
-//     console.log(" search keyword : ", keyword);
-//   } else {
-//     console.log(" no search only used filter ");
-//   }
-
-//   // filter
-//   if (province) {
-//     sql += " AND f.province = ?";
-//     params.push(province);
-//   }
-
-//   if (district) {
-//     sql += " AND f.district = ?";
-//     params.push(district);
-//   }
-
-//   if (locality) {
-//     sql += " AND f.locality = ?";
-//     params.push(locality);
-//   }
-
-//   try {
-//     conn.query(sql, params, (err: any, results: any[]) => {
-//       if (err) {
-//         console.error("Search error:", err);
-//         return res.status(500).json({ error: "Database query failed" });
-//       }
-
-//       // แปลงผลลัพธ์ให้มี images เป็น array
-//       const resultsWithImages = results.map((r) => ({
-//         ...r,
-//         images: r.image1 ? [r.image1] : [],
-//       }));
-
-//       res.json(resultsWithImages);
-//     });
-//   } catch (error) {
-//     res.status(500).json({ error: "Server error" });
-//   }
-// });
-
 
 
 // get bull data *****

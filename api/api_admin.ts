@@ -754,7 +754,7 @@ router.put("/farms/update/:id", requireType(2), async (req, res) => {
 });
 
 // DELETE /admin/farms/delete/:id — Master เท่านั้น
-router.delete("/farms/delete/:id", requireType(1), async (req, res) => {
+router.delete("/farms/delete/:id", requireType(2), async (req, res) => {
   try {
     const { id } = req.params;
 

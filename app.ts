@@ -21,7 +21,7 @@ export const app = express();
 app.use(
   cors({
     origin: "*",
-  }),
+  })
 );
 
 app.use(
@@ -32,12 +32,12 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
     },
-  }),
+  })
 );
 
 // รองรับ Request Body ขนาดใหญ่ขึ้น
 app.use((req, res, next) => {
-  if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
+  if (req.headers['content-type']?.startsWith('multipart/form-data')) {
     return next();
   }
   express.json({ limit: "50mb" })(req, res, next);
@@ -47,14 +47,14 @@ app.use(
   express.urlencoded({
     extended: true,
     limit: "50mb",
-  }),
+  })
 );
 
 // ถ้ายังมี endpoint ที่รับ text
 app.use(
   bodyParser.text({
     limit: "50mb",
-  }),
+  })
 );
 
 app.use("/", index);

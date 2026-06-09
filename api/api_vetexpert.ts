@@ -1,4 +1,5 @@
-import express from "express";
+import express, { Request, Response } from "express";
+import mysql from "mysql";
 import { VetExpertPostRequest } from "../model/data_post_request";
 import { VetSchedulesPostRequest } from "../model/data_post_request";
 import { conn, queryAsync } from "../dbconnect";
@@ -96,16 +97,11 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
 
     // license → reject
     if (!licenseUrl) {
-      return res
-        .status(400)
-        .json({ error: "VetExpert license is required" });
+      return res.status(400).json({ error: "VetExpert license is required" });
     }
 
     // hash password
-    const hashedPassword = await bcrypt.hash(
-      VetExperts.VetExpert_password,
-      10
-    );
+    const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
 
     const profileImage =
       "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg";
@@ -133,7 +129,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     const values = [
       VetExperts.VetExpert_name,
       hashedPassword,
-      VetExperts.VetExpert_password, 
+      VetExperts.VetExpert_password,
       VetExperts.phonenumber,
       VetExperts.VetExpert_email || "",
       profileImage,
@@ -141,7 +137,7 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       VetExperts.district,
       VetExperts.locality,
       VetExperts.VetExpert_address || "",
-      licenseUrl, // 
+      licenseUrl, //
       0,
       VetExperts.lat || null,
       VetExperts.lng || null,
@@ -178,12 +174,14 @@ router.put("/update-address/:id", async (req, res) => {
            vetexperts_address = ?, vetexperts_loc_lat = ?, vetexperts_loc_long = ?
        WHERE vetexperts_id = ?`,
       [
-        vetexperts_province, vetexperts_district, vetexperts_locality,
+        vetexperts_province,
+        vetexperts_district,
+        vetexperts_locality,
         vetexperts_address,
-        vetexperts_loc_lat  || null,
+        vetexperts_loc_lat || null,
         vetexperts_loc_long || null,
         id,
-      ]
+      ],
     );
 
     if (result.affectedRows === 0)
@@ -191,10 +189,11 @@ router.put("/update-address/:id", async (req, res) => {
 
     return res.status(200).json({ message: "อัพเดตที่อยู่สำเร็จ" });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
-
 
 // insert farm *****
 router.post("/insertfarm", (req, res) => {
@@ -244,7 +243,7 @@ router.post("/insertfarm", (req, res) => {
           message: "Farm inserted successfully",
           farmId: result.insertId,
         });
-      }
+      },
     );
   });
 });
@@ -267,7 +266,7 @@ router.post("/vet/schedule", async (req, res) => {
     // check vet_expert_id is existed
     const experts: any = await queryAsync(
       "SELECT vetexperts_id FROM tb_vetexperts WHERE vetexperts_id = ?",
-      [vet_expert_id]
+      [vet_expert_id],
     );
     if (experts.length === 0) {
       return res.status(404).json({ error: "Vet expert not found" });
@@ -278,14 +277,14 @@ router.post("/vet/schedule", async (req, res) => {
       // check time
       const existing: any = await queryAsync(
         "SELECT schedules_id FROM tb_vet_schedules WHERE ref_vetexperts_id = ? AND schedules_available_date = ? AND schedules_available_time = ?",
-        [vet_expert_id, available_date, time]
+        [vet_expert_id, available_date, time],
       );
 
       if (existing.length > 0) continue; //
 
       const result: any = await queryAsync(
         "INSERT INTO tb_vet_schedules (ref_vetexperts_id, schedules_available_date, schedules_available_time, schedules_is_booked) VALUES (?, ?, ?, false)",
-        [vet_expert_id, available_date, time]
+        [vet_expert_id, available_date, time],
       );
       insertedIds.push(result.insertId);
     }
@@ -303,7 +302,7 @@ router.post("/vet/schedule", async (req, res) => {
   } catch (err: any) {
     console.error(
       "Error adding schedule:",
-      err.sqlMessage || err.message || err
+      err.sqlMessage || err.message || err,
     );
     return res.status(500).json({
       error: "Internal server error",
@@ -311,7 +310,6 @@ router.post("/vet/schedule", async (req, res) => {
     });
   }
 });
-
 
 router.get("/get/schedule/:id", async (req, res) => {
   try {
@@ -342,8 +340,6 @@ router.get("/get/schedule/:id", async (req, res) => {
   }
 });
 
-
-
 // total stock of semen for vet expert
 router.get("/vet-bulls/total-stock/:vet_id", async (req, res) => {
   try {
@@ -353,7 +349,7 @@ router.get("/vet-bulls/total-stock/:vet_id", async (req, res) => {
       `SELECT COALESCE(SUM(bulls_semen_stock), 0) AS total_stock
        FROM tb_vet_bulls
        WHERE ref_vetexperts_id = ?`,
-      [vet_id]
+      [vet_id],
     );
 
     return res.status(200).json({ total_stock: result[0].total_stock });
@@ -362,30 +358,117 @@ router.get("/vet-bulls/total-stock/:vet_id", async (req, res) => {
   }
 });
 
-
 // แก้ไขข้อมูลส่วนตัว (ชื่อ, เบอร์, อีเมล, รูปโปรไฟล์, รูปใบประกอบ)
-router.put("/vetexpert/update-profile/:vet_id", async (req, res) => {
-  try {
-    const { vet_id } = req.params;
-    const { vetexperts_name, vetexperts_phonenumber, vetexperts_email, vetexperts_profile_image, vetexperts_license } = req.body;
+router.put(
+  "/vetexpert/update-profile/:vet_id",
+  upload.fields([
+    // ← เพิ่ม middleware รับไฟล์
+    { name: "profile_image", maxCount: 1 },
+    { name: "license_image", maxCount: 1 },
+  ]),
+  async (req: Request, res: Response) => {
+    try {
+      const vet_id = +req.params.vet_id;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    const sql = `
-      UPDATE tb_vetexperts
-      SET vetexperts_name = ?, vetexperts_phonenumber = ?, vetexperts_email = ?,
-          vetexperts_profile_image = ?, vetexperts_license = ?
-      WHERE vetexperts_id = ?
-    `;
-    const result: any = await queryAsync(sql, [
-      vetexperts_name, vetexperts_phonenumber, vetexperts_email,
-      vetexperts_profile_image, vetexperts_license, vet_id,
-    ]);
+      // ดึงข้อมูลเดิมก่อน
+      const selectSql = mysql.format(
+        "SELECT * FROM tb_vetexperts WHERE vetexperts_id = ?",
+        [vet_id],
+      );
+      const existing = (await queryAsync(selectSql)) as any[];
+      if (existing.length === 0) {
+        return res.status(404).json({ error: "Vet not found" });
+      }
+      const vetOriginal = existing[0];
 
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
-    return res.status(200).json({ message: "Profile updated successfully" });
-  } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
-  }
-});
+      // อัปโหลดรูปโปรไฟล์ใหม่ถ้ามี
+      let profileImageUrl = vetOriginal.vetexperts_profile_image;
+      if (files?.profile_image?.[0]) {
+        const uploadResult = await cloudinary.uploader.upload(
+          files.profile_image[0].path,
+          { folder: "vetexperts_profile" },
+        );
+        profileImageUrl = uploadResult.secure_url;
+      }
+
+      // อัปโหลดรูปใบประกอบวิชาชีพใหม่ถ้ามี
+      let licenseImageUrl = vetOriginal.vetexperts_license;
+      if (files?.license_image?.[0]) {
+        const uploadResult = await cloudinary.uploader.upload(
+          files.license_image[0].path,
+          { folder: "vetexperts_license" },
+        );
+        licenseImageUrl = uploadResult.secure_url;
+      }
+
+      const { vetexperts_name, vetexperts_phonenumber, vetexperts_email } =
+        req.body;
+
+      const updateSql = mysql.format(
+        `UPDATE tb_vetexperts
+         SET vetexperts_name = ?,
+             vetexperts_phonenumber = ?,
+             vetexperts_email = ?,
+             vetexperts_profile_image = ?,
+             vetexperts_license = ?
+         WHERE vetexperts_id = ?`,
+        [
+          vetexperts_name ?? vetOriginal.vetexperts_name,
+          vetexperts_phonenumber ?? vetOriginal.vetexperts_phonenumber,
+          vetexperts_email ?? vetOriginal.vetexperts_email,
+          profileImageUrl,
+          licenseImageUrl,
+          vet_id,
+        ],
+      );
+
+      const result: any = await queryAsync(updateSql);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Vet not found" });
+      }
+
+      // ดึงข้อมูลล่าสุดส่งกลับ (เหมือน farmer route)
+      const updatedResult = (await queryAsync(
+        mysql.format("SELECT * FROM tb_vetexperts WHERE vetexperts_id = ?", [
+          vet_id,
+        ]),
+      )) as any[];
+
+      return res.status(200).json({
+        message: "Profile updated successfully",
+        vet: updatedResult[0],
+      });
+    } catch (err: any) {
+      console.error(err);
+      return res
+        .status(500)
+        .json({ error: "Update failed", details: err.message });
+    }
+  },
+);
+// router.put("/vetexpert/update-profile/:vet_id", async (req, res) => {
+//   try {
+//     const { vet_id } = req.params;
+//     const { vetexperts_name, vetexperts_phonenumber, vetexperts_email, vetexperts_profile_image, vetexperts_license } = req.body;
+
+//     const sql = `
+//       UPDATE tb_vetexperts
+//       SET vetexperts_name = ?, vetexperts_phonenumber = ?, vetexperts_email = ?,
+//           vetexperts_profile_image = ?, vetexperts_license = ?
+//       WHERE vetexperts_id = ?
+//     `;
+//     const result: any = await queryAsync(sql, [
+//       vetexperts_name, vetexperts_phonenumber, vetexperts_email,
+//       vetexperts_profile_image, vetexperts_license, vet_id,
+//     ]);
+
+//     if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
+//     return res.status(200).json({ message: "Profile updated successfully" });
+//   } catch (err: any) {
+//     return res.status(500).json({ error: "Internal server error", details: err.message });
+//   }
+// });
 
 // เปลี่ยนรหัสผ่าน
 router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
@@ -395,13 +478,17 @@ router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
 
     const rows: any = await queryAsync(
       "SELECT vetexperts_hashpassword FROM tb_vetexperts WHERE vetexperts_id = ?",
-      [vet_id]
+      [vet_id],
     );
 
-    if (rows.length === 0) return res.status(404).json({ error: "Vet not found" });
+    if (rows.length === 0)
+      return res.status(404).json({ error: "Vet not found" });
 
     // เช็ครหัสเดิมกับ hash
-    const isMatch = await bcrypt.compare(old_password, rows[0].vetexperts_hashpassword);
+    const isMatch = await bcrypt.compare(
+      old_password,
+      rows[0].vetexperts_hashpassword,
+    );
     if (!isMatch) {
       return res.status(400).json({ error: "รหัสผ่านเดิมไม่ถูกต้อง" });
     }
@@ -415,21 +502,27 @@ router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
     // );
     await queryAsync(
       "UPDATE tb_vetexperts SET vetexperts_hashpassword = ?, vetexperts_password = ? WHERE vetexperts_id = ?",
-      [hashedPassword, new_password, vet_id]  
+      [hashedPassword, new_password, vet_id],
     );
 
     return res.status(200).json({ message: "Password changed successfully" });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
-
 
 // แก้ไขที่อยู่
 router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
   try {
     const { vet_id } = req.params;
-    const { vetexperts_province, vetexperts_district, vetexperts_locality, vetexperts_address } = req.body;
+    const {
+      vetexperts_province,
+      vetexperts_district,
+      vetexperts_locality,
+      vetexperts_address,
+    } = req.body;
 
     const sql = `
       UPDATE tb_vetexperts
@@ -438,14 +531,20 @@ router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
       WHERE vetexperts_id = ?
     `;
     const result: any = await queryAsync(sql, [
-      vetexperts_province, vetexperts_district,
-      vetexperts_locality, vetexperts_address, vet_id,
+      vetexperts_province,
+      vetexperts_district,
+      vetexperts_locality,
+      vetexperts_address,
+      vet_id,
     ]);
 
-    if (result.affectedRows === 0) return res.status(404).json({ error: "Vet not found" });
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Vet not found" });
     return res.status(200).json({ message: "Address updated successfully" });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
@@ -453,14 +552,14 @@ router.put("/vetexpert/update-address/:vet_id", async (req, res) => {
 router.get("/farms", async (req: any, res: any) => {
   try {
     const rows = await queryAsync(
-      `SELECT * FROM tb_farms ORDER BY frams_id DESC`, []
+      `SELECT * FROM tb_farms ORDER BY frams_id DESC`,
+      [],
     );
     return res.status(200).json({ success: true, data: rows });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
-
 
 // ── ดูวัวทั้งหมดของหมอ ────────────────────────────────────────────────────
 router.get("/vet-bulls/my/:vet_id", async (req, res) => {
@@ -479,11 +578,13 @@ router.get("/vet-bulls/my/:vet_id", async (req, res) => {
        LEFT JOIN tb_bulls_img bi ON bs.bulls_id = bi.ref_bulls_id
        WHERE vb.ref_vetexperts_id = ?
        ORDER BY vb.created_at DESC`,
-      [vet_id]
+      [vet_id],
     );
     return res.status(200).json(rows);
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
@@ -491,11 +592,13 @@ router.get("/vet-bulls/my/:vet_id", async (req, res) => {
 router.get("/vet-bulls/farms", async (req, res) => {
   try {
     const rows = await queryAsync(
-      `SELECT frams_id, frams_name, frams_province, frams_district FROM tb_farms ORDER BY frams_name ASC`
+      `SELECT frams_id, frams_name, frams_province, frams_district FROM tb_farms ORDER BY frams_name ASC`,
     );
     return res.status(200).json(rows);
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
@@ -505,52 +608,91 @@ router.get("/vet-bulls/bulls-in-farm/:farm_id", async (req, res) => {
     const { farm_id } = req.params;
     const rows = await queryAsync(
       `SELECT bulls_id, bulls_name, bulls_breed FROM tb_bull_sires WHERE ref_farm_id = ?`,
-      [farm_id]
+      [farm_id],
     );
     return res.status(200).json(rows);
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
 // ── สร้างฟาร์มใหม่ ────────────────────────────────────────────────────────
 router.post("/vet-bulls/farms/create", async (req, res) => {
   try {
-    const { frams_name, frams_province, frams_district, frams_locality, frams_address } = req.body;
-    if (!frams_name) return res.status(400).json({ error: "กรุณากรอกชื่อฟาร์ม" });
+    const {
+      frams_name,
+      frams_province,
+      frams_district,
+      frams_locality,
+      frams_address,
+    } = req.body;
+    if (!frams_name)
+      return res.status(400).json({ error: "กรุณากรอกชื่อฟาร์ม" });
 
     const result: any = await queryAsync(
       `INSERT INTO tb_farms (frams_name, frams_province, frams_district, frams_locality, frams_address)
        VALUES (?, ?, ?, ?, ?)`,
-      [frams_name, frams_province || null, frams_district || null, frams_locality || null, frams_address || null]
+      [
+        frams_name,
+        frams_province || null,
+        frams_district || null,
+        frams_locality || null,
+        frams_address || null,
+      ],
     );
-    return res.status(201).json({ message: "สร้างฟาร์มสำเร็จ", frams_id: result.insertId });
+    return res
+      .status(201)
+      .json({ message: "สร้างฟาร์มสำเร็จ", frams_id: result.insertId });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
 // ── สร้างวัวใหม่ ──────────────────────────────────────────────────────────
 router.post("/vet-bulls/bulls/create", async (req, res) => {
   try {
-    const { bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_HealthStatus, ref_farm_id } = req.body;
-    if (!bulls_name || !ref_farm_id) return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+    const {
+      bulls_name,
+      bulls_breed,
+      bulls_age,
+      bulls_characteristics,
+      bulls_HealthStatus,
+      ref_farm_id,
+    } = req.body;
+    if (!bulls_name || !ref_farm_id)
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
 
     const result: any = await queryAsync(
       `INSERT INTO tb_bull_sires (bulls_name, bulls_breed, bulls_age, bulls_characteristics, bulls_HealthStatus, ref_farm_id, bulls_contest_records)
        VALUES (?, ?, ?, ?, ?, ?, '')`,
-      [bulls_name, bulls_breed || null, bulls_age || null, bulls_characteristics || null, bulls_HealthStatus || null, ref_farm_id]
+      [
+        bulls_name,
+        bulls_breed || null,
+        bulls_age || null,
+        bulls_characteristics || null,
+        bulls_HealthStatus || null,
+        ref_farm_id,
+      ],
     );
-    return res.status(201).json({ message: "สร้างข้อมูลวัวสำเร็จ", bulls_id: result.insertId });
+    return res
+      .status(201)
+      .json({ message: "สร้างข้อมูลวัวสำเร็จ", bulls_id: result.insertId });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
 // ── เพิ่มวัวเข้าสต็อกหมอ + บันทึกรูป ────────────────────────────────────
 router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
   try {
-    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } = req.body;
+    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
+      req.body;
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
     const images: string[] = [];
 
@@ -567,12 +709,18 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
     const rawBodyImages = req.body.images;
     if (rawBodyImages) {
       if (Array.isArray(rawBodyImages)) {
-        images.push(...rawBodyImages.filter((img) => typeof img === "string" && img.trim()));
+        images.push(
+          ...rawBodyImages.filter(
+            (img) => typeof img === "string" && img.trim(),
+          ),
+        );
       } else if (typeof rawBodyImages === "string") {
         try {
           const parsed = JSON.parse(rawBodyImages);
           if (Array.isArray(parsed)) {
-            images.push(...parsed.filter((img) => typeof img === "string" && img.trim()));
+            images.push(
+              ...parsed.filter((img) => typeof img === "string" && img.trim()),
+            );
           } else if (rawBodyImages.trim()) {
             images.push(rawBodyImages.trim());
           }
@@ -594,7 +742,7 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
       await queryAsync(
         `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
          VALUES (?, ?, ?, ?)`,
-        [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0]
+        [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0],
       );
 
       // บันทึกรูปเฉพาะเมื่อมีรูป
@@ -607,7 +755,7 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
              bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
              bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
              bulls_image5 = VALUES(bulls_image5)`,
-          [bulls_id, ...imgs]
+          [bulls_id, ...imgs],
         );
       }
 
@@ -618,7 +766,9 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
       throw e;
     }
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 // router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
@@ -701,24 +851,27 @@ router.put("/vet-bulls/update/:vet_bull_id", async (req, res) => {
     const result: any = await queryAsync(
       `UPDATE tb_vet_bulls SET bulls_semen_stock = ?, bulls_price_per_dose = ?, updated_at = NOW()
        WHERE vet_bulls_id = ?`,
-      [bulls_semen_stock, bulls_price_per_dose, vet_bull_id]
+      [bulls_semen_stock, bulls_price_per_dose, vet_bull_id],
     );
-    if (result.affectedRows === 0) return res.status(404).json({ error: "ไม่พบข้อมูล" });
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "ไม่พบข้อมูล" });
     return res.status(200).json({ message: "อัพเดตสำเร็จ" });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });
 
-router.post('/update-fcm-token', async (req: any, res: any) => {
-  const { vet_id, fcm_token } = req.body
+router.post("/update-fcm-token", async (req: any, res: any) => {
+  const { vet_id, fcm_token } = req.body;
   try {
     await queryAsync(
-      'UPDATE tb_vetexperts SET fcm_token = ? WHERE vetexperts_id = ?',
-      [fcm_token, vet_id]
-    )
-    res.json({ success: true })
+      "UPDATE tb_vetexperts SET fcm_token = ? WHERE vetexperts_id = ?",
+      [fcm_token, vet_id],
+    );
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false })
+    res.status(500).json({ success: false });
   }
-})
+});

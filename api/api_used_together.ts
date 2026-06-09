@@ -132,12 +132,33 @@ const JWT_EXPIRES_IN = "7d";
 //   }
 // });
 
-
 router.post("/login", async (req, res) => {
-  const { loginId, password } = req.body;
+  const { loginId, password, recaptcha_token } = req.body;
 
   if (!loginId || !password) {
     return res.status(400).json({ error: "loginId and password are required" });
+  }
+
+  const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
+  if (RECAPTCHA_SECRET && recaptcha_token) {
+    try {
+      const verifyRes = await fetch(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET}&response=${recaptcha_token}`,
+        { method: "POST" },
+      );
+      const verifyData = (await verifyRes.json()) as any;
+      console.log("reCAPTCHA result:", verifyData);
+
+      if (!verifyData.success || verifyData.score < 0.5) {
+        return res.status(400).json({
+          error: "reCAPTCHA ไม่ผ่าน กรุณาลองใหม่",
+          score: verifyData.score,
+        });
+      }
+    } catch (e) {
+      console.error("reCAPTCHA verify error:", e);
+      // fail-open: ถ้า verify error ยังให้ login ได้
+    }
   }
 
   //  FARMER
@@ -149,16 +170,23 @@ router.post("/login", async (req, res) => {
 
     if (farmers.length > 0) {
       const farmer = farmers[0];
-      const isMatch = await bcrypt.compare(password, farmer.farmers_hashpassword);
+      const isMatch = await bcrypt.compare(
+        password,
+        farmer.farmers_hashpassword,
+      );
 
       if (!isMatch) {
         return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
       }
 
-      return res.json({ role: "farmer", message: "เข้าสู่ระบบสำเร็จ", user: farmer });
+      return res.json({
+        role: "farmer",
+        message: "เข้าสู่ระบบสำเร็จ",
+        user: farmer,
+      });
     }
 
-    //  VET 
+    //  VET
     const vetSql =
       "SELECT * FROM tb_vetexperts WHERE vetexperts_name = ? OR vetexperts_phonenumber = ? OR vetexperts_email = ?";
 
@@ -169,72 +197,88 @@ router.post("/login", async (req, res) => {
         const vet = vets[0];
 
         if (vet.vetexperts_status === 0) {
-          return res.status(403).json({ error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ" });
+          return res
+            .status(403)
+            .json({ error: "บัญชีนี้อยู่ระหว่างรอการยืนยันจากระบบ" });
         }
 
         if (vet.vetexperts_status !== 1) {
-          return res.status(403).json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
+          return res
+            .status(403)
+            .json({ error: "บัญชีนี้ไม่สามารถเข้าใช้งานได้" });
         }
 
-        const isMatch = await bcrypt.compare(password, vet.vetexperts_hashpassword);
+        const isMatch = await bcrypt.compare(
+          password,
+          vet.vetexperts_hashpassword,
+        );
         if (!isMatch) {
           return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
         }
 
-        return res.json({ role: "vet", message: "เข้าสู่ระบบสำเร็จ", user: vet });
+        return res.json({
+          role: "vet",
+          message: "เข้าสู่ระบบสำเร็จ",
+          user: vet,
+        });
       }
 
-      // ADMIN 
+      // ADMIN
       const adminSql =
         "SELECT * FROM tb_admins WHERE admins_name = ? OR admins_phonenumber = ? OR admins_email = ?";
 
-      conn.query(adminSql, [loginId, loginId, loginId], async (err3, admins) => {
-        if (err3) return res.status(500).json({ error: err3.message });
+      conn.query(
+        adminSql,
+        [loginId, loginId, loginId],
+        async (err3, admins) => {
+          if (err3) return res.status(500).json({ error: err3.message });
 
-        if (admins.length > 0) {
-          const admin = admins[0];
+          if (admins.length > 0) {
+            const admin = admins[0];
 
-          const isMatch = await bcrypt.compare(password, admin.admins_password);
-          if (!isMatch) {
-            return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+            const isMatch = await bcrypt.compare(
+              password,
+              admin.admins_password,
+            );
+            if (!isMatch) {
+              return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+            }
+
+            return res.json({
+              role: "admin",
+              message: "เข้าสู่ระบบสำเร็จ",
+              user: {
+                admins_id: admin.admins_id,
+                admins_name: admin.admins_name,
+                admins_email: admin.admins_email,
+                admins_phonenumber: admin.admins_phonenumber,
+                admins_address: admin.admins_address,
+                admin_type: admin.admin_type,
+                must_change_password: admin.must_change_password,
+              },
+            });
+          }
+          if (admins.length > 0) {
+            const admin = admins[0];
+
+            if (password !== admin.admins_password) {
+              return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
+            }
+
+            return res.json({
+              role: "admin",
+              message: "เข้าสู่ระบบสำเร็จ",
+              user: admin,
+            });
           }
 
-          return res.json({
-            role: "admin",
-            message: "เข้าสู่ระบบสำเร็จ",
-            user: {
-              admins_id:            admin.admins_id,
-              admins_name:          admin.admins_name,
-              admins_email:         admin.admins_email,
-              admins_phonenumber:   admin.admins_phonenumber,
-              admins_address:       admin.admins_address,
-              admin_type:           admin.admin_type,
-              must_change_password: admin.must_change_password, 
-            },
-          });
-        }
-        if (admins.length > 0) {
-          const admin = admins[0];
-
-          if (password !== admin.admins_password) {
-            return res.status(400).json({ error: "รหัสผ่านไม่ถูกต้อง" });
-          }
-
-          return res.json({
-            role: "admin",
-            message: "เข้าสู่ระบบสำเร็จ",
-            user: admin,
-          });
-        }
-
-
-        // ไม่พบทุก role
-        return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
-      });
+          // ไม่พบทุก role
+          return res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+        },
+      );
     });
   });
 });
-
 
 // Search *****
 router.post("/search", async (req, res) => {
@@ -287,11 +331,7 @@ router.post("/search", async (req, res) => {
         OR f.frams_name LIKE ?
       )
     `;
-    params.push(
-      `%${keyword}%`,
-      `%${keyword}%`,
-      `%${keyword}%`
-    );
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
   }
 
   // ===== filter location =====
@@ -338,8 +378,8 @@ router.post("/search", async (req, res) => {
           price_per_dose: r.bulls_price_per_dose,
           semen_stock: r.bulls_semen_stock,
 
-          vet_id: r.ref_vetexperts_id,       
-          vet_name: r.vetexperts_name,        
+          vet_id: r.ref_vetexperts_id,
+          vet_name: r.vetexperts_name,
 
           farm: {
             farm_id: r.farm_id,
@@ -361,7 +401,6 @@ router.post("/search", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 // get bull data *****
 router.get("/bullData", async (req, res) => {
@@ -397,13 +436,11 @@ router.get("/bullData", async (req, res) => {
       LEFT JOIN tb_bulls_img i ON b.bulls_id = i.ref_bulls_id
     `;
 
-    conn.query(
-      sql,
-      (err: MysqlError | null, rows: RowDataPacket[]) => {
-        if (err) {
-          console.error("Error fetching bulls:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
+    conn.query(sql, (err: MysqlError | null, rows: RowDataPacket[]) => {
+      if (err) {
+        console.error("Error fetching bulls:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
 
       const bullsMap: Record<number, any> = {};
 
@@ -456,9 +493,6 @@ router.get("/bullData", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-
 
 router.get("/vet-by-bull/:bull_id", (req, res) => {
   const bullId = req.params.bull_id;

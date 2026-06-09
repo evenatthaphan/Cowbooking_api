@@ -35,7 +35,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "firebase-admin": "^13.5.0",
+    "firebase-admin": "^13.10.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "mysql": "^2.18.1",

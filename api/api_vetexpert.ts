@@ -9,7 +9,6 @@ import cloudinary from "../src/config/cloudinary";
 import { promises as fs } from "fs";
 import axios from "axios";
 //import { db } from "../firebaseconnect";
-import { v4 as uuidv4 } from "uuid";
 
 export const router = express.Router();
 //import { initializeApp } from "firebase/app";

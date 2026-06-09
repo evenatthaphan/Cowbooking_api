@@ -637,3 +637,16 @@ router.put("/vet-bulls/update/:vet_bull_id", async (req, res) => {
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
+
+router.post('/update-fcm-token', async (req: any, res: any) => {
+  const { vet_id, fcm_token } = req.body
+  try {
+    await queryAsync(
+      'UPDATE tb_vetexperts SET fcm_token = ? WHERE vetexperts_id = ?',
+      [fcm_token, vet_id]
+    )
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ success: false })
+  }
+})

@@ -844,7 +844,7 @@ router.put("/bulls/update/:id", requireType(2), async (req, res) => {
 });
 
 // DELETE /admin/bulls/delete/:id — Master เท่านั้น
-router.delete("/bulls/delete/:id", requireType(1), async (req, res) => {
+router.delete("/bulls/delete/:id", requireType(2), async (req, res) => {
   try {
     const { id } = req.params;
     const result: any = await queryAsync(

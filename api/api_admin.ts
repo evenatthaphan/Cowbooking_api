@@ -669,7 +669,7 @@ router.get("/verify-vet", async (req: Request, res: Response) => {
 });
 
 // PUT /admin/verify-vet/:id
-router.put("/verify-vet/:id", async (req: any, res: any) => {
+router.put("/verify-vet/:id", requireType(2), async (req: any, res: any) => {
   const { id } = req.params;
   const { status, admin_id } = req.body;
 

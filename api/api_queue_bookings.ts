@@ -229,9 +229,9 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
 
     const statusLower = (status as string).toLowerCase();
 
-    // ดึงข้อมูล booking ก่อน เพื่อเอา dose และ bull_id
     const bookings: any = await queryAsync(
-      `SELECT bookings_dose, ref_bulls_id FROM tb_queue_bookings WHERE queue_bookings_id = ?`,
+      `SELECT bookings_dose, ref_bulls_id, ref_farmers_id, ref_schedules_id 
+       FROM tb_queue_bookings WHERE queue_bookings_id = ?`,
       [booking_id],
     );
 
@@ -239,13 +239,11 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
       return res.status(404).json({ error: "Booking not found" });
     }
 
-    const { bookings_dose, ref_bulls_id } = bookings[0];
+    const { bookings_dose, ref_bulls_id, ref_farmers_id } = bookings[0];
 
-    // เริ่ม Transaction
     await queryAsync("START TRANSACTION");
 
     try {
-      // update สถานะ booking
       const updateBooking = (await queryAsync(
         `UPDATE tb_queue_bookings
          SET bookings_status = ?, bookings_vet_notes = ?, updated_at = NOW()
@@ -258,11 +256,10 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
         return res.status(404).json({ error: "Booking not found" });
       }
 
-      // ถ้า accepted และมี bull_id และ dose → ลดจำนวนโดส
       if (statusLower === "accepted" && ref_bulls_id && bookings_dose) {
-        // ตรวจว่าโดสเพียงพอก่อน
+        // ✅ ใช้ vet_bulls_id แทน ref_bulls_id
         const bulls: any = await queryAsync(
-          `SELECT bulls_semen_stock FROM tb_vet_bulls WHERE ref_bulls_id = ?`,
+          `SELECT bulls_semen_stock FROM tb_vet_bulls WHERE vet_bulls_id = ?`,
           [ref_bulls_id],
         );
 
@@ -282,43 +279,39 @@ router.put("/bookings/update/:booking_id", async (req, res) => {
           });
         }
 
-        // ลดโดส
+        // ✅ ใช้ vet_bulls_id แทน ref_bulls_id
         await queryAsync(
-          `UPDATE tb_vet_bulls SET bulls_semen_stock = bulls_semen_stock - ? WHERE ref_bulls_id = ?`, 
+          `UPDATE tb_vet_bulls SET bulls_semen_stock = bulls_semen_stock - ? WHERE vet_bulls_id = ?`,
           [bookings_dose, ref_bulls_id],
         );
+      }
 
-        // ดึง farmer_id จาก booking
-        const booking: any = await queryAsync(
-          "SELECT ref_farmers_id, ref_schedules_id FROM tb_queue_bookings WHERE queue_bookings_id = ?",
-          [booking_id],
+      // notification ทั้ง accepted และ rejected
+      if (ref_farmers_id) {
+        const isAccepted = statusLower === "accepted";
+        await queryAsync(
+          `INSERT INTO tb_notifications
+           (ref_farmers_id, noti_type, noti_title, noti_message, ref_booking_id)
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            ref_farmers_id,
+            isAccepted ? "booking_accepted" : "booking_rejected",
+            isAccepted ? "คิวได้รับการตอบรับ ✓" : "คิวถูกปฏิเสธ",
+            isAccepted
+              ? "สัตวบาลได้ยืนยันรับคิวของคุณแล้ว"
+              : `สัตวบาลปฏิเสธคิวของคุณ${vet_notes ? ": " + vet_notes : ""}`,
+            booking_id,
+          ],
         );
-
-        if (booking.length > 0) {
-          const farmerId = booking[0].ref_farmers_id;
-          const isAccepted = statusLower === "accepted";
-
-          await queryAsync(
-            `INSERT INTO tb_notifications
-       (ref_farmers_id, noti_type, noti_title, noti_message, ref_booking_id)
-       VALUES (?, ?, ?, ?, ?)`,
-            [
-              farmerId,
-              isAccepted ? "booking_accepted" : "booking_rejected",
-              isAccepted ? "คิวได้รับการตอบรับ ✓" : "คิวถูกปฏิเสธ",
-              isAccepted
-                ? "สัตวบาลได้ยืนยันรับคิวของคุณแล้ว"
-                : `สัตวบาลปฏิเสธคิวของคุณ${vet_notes ? ": " + vet_notes : ""}`,
-              booking_id,
-            ],
-          );
-        }
       }
 
       await queryAsync("COMMIT");
 
       return res.status(200).json({
-        message: "Booking status and notes updated successfully",
+        message:
+          statusLower === "accepted"
+            ? "ยืนยันการจองสำเร็จ"
+            : "ปฏิเสธการจองสำเร็จ",
         ...(statusLower === "accepted" && ref_bulls_id && bookings_dose
           ? { dose_deducted: bookings_dose }
           : {}),

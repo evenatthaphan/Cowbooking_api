@@ -401,6 +401,38 @@ router.put("/update-profile/:id", async (req: any, res: any) => {
 // MEMBER MANAGEMENT
 // ─────────────────────────────────────────────────────────────────────────────
 
+router.get("/admin/members", requireType(2), async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    if (type !== "vetexpert") {
+      return res.status(400).json({ error: "type ไม่ถูกต้อง" });
+    }
+
+    const rows = await queryAsync(
+      `SELECT 
+        vetexperts_id        AS id,
+        vetexperts_name      AS name,
+        vetexperts_email     AS email,
+        vetexperts_phonenumber AS phonenumber,
+        vetexperts_license   AS license,
+        vetexperts_status    AS status,
+        vetexperts_address   AS address,
+        vetexperts_province  AS province,
+        vetexperts_district  AS district,
+        vetexperts_locality  AS locality,
+        created_at
+       FROM tb_vetexperts
+       ORDER BY created_at ASC`
+    );
+
+    return res.status(200).json({ data: rows });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+
 // GET /admin/members
 router.get("/members", async (req: Request, res: Response) => {
   const { type } = req.query;

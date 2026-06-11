@@ -448,7 +448,6 @@ router.put(
   },
 );
 
-
 // เปลี่ยนรหัสผ่าน
 router.put("/vetexpert/change-password/:vet_id", async (req, res) => {
   try {
@@ -668,6 +667,60 @@ router.post("/vet-bulls/bulls/create", async (req, res) => {
 });
 
 // ── เพิ่มวัวเข้าสต็อกหมอ + บันทึกรูป ────────────────────────────────────
+// router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
+//   try {
+//     const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
+//       req.body;
+
+//     if (!vet_id || !bulls_id)
+//       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+
+//     // อัปโหลดรูปขึ้น Cloudinary เอง (เหมือนเกษตรกร)
+//     const images: string[] = [];
+//     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+//     if (uploadedFiles && uploadedFiles.length > 0) {
+//       for (const file of uploadedFiles) {
+//         const uploadResult = await cloudinary.uploader.upload(file.path, {
+//           folder: "vet_bulls",
+//         });
+//         images.push(uploadResult.secure_url);
+//         await fs.unlink(file.path); // ลบไฟล์ชั่วคราว
+//       }
+//     }
+
+//     await queryAsync("START TRANSACTION");
+//     try {
+//       await queryAsync(
+//         `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
+//          VALUES (?, ?, ?, ?)`,
+//         [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0],
+//       );
+
+//       if (images.length > 0) {
+//         const imgs = [...images, null, null, null, null, null].slice(0, 5);
+//         await queryAsync(
+//           `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
+//            VALUES (?, ?, ?, ?, ?, ?)
+//            ON DUPLICATE KEY UPDATE
+//              bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
+//              bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
+//              bulls_image5 = VALUES(bulls_image5)`,
+//           [bulls_id, ...imgs],
+//         );
+//       }
+
+//       await queryAsync("COMMIT");
+//       return res.status(201).json({ message: "เพิ่มวัวเข้าสต็อกสำเร็จ" });
+//     } catch (e) {
+//       await queryAsync("ROLLBACK");
+//       throw e;
+//     }
+//   } catch (err: any) {
+//     return res
+//       .status(500)
+//       .json({ error: "Internal server error", details: err.message });
+//   }
+// });
 router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
   try {
     const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
@@ -676,16 +729,16 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
     if (!vet_id || !bulls_id)
       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
 
-    // อัปโหลดรูปขึ้น Cloudinary เอง (เหมือนเกษตรกร)
-    const images: string[] = [];
+    // 1. อัปโหลดรูปขึ้น Cloudinary
+    const imageUrls: string[] = [];
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
     if (uploadedFiles && uploadedFiles.length > 0) {
       for (const file of uploadedFiles) {
-        const uploadResult = await cloudinary.uploader.upload(file.path, {
+        const result = await cloudinary.uploader.upload(file.path, {
           folder: "vet_bulls",
         });
-        images.push(uploadResult.secure_url);
-        await fs.unlink(file.path); // ลบไฟล์ชั่วคราว
+        imageUrls.push(result.secure_url);
+        await fs.unlink(file.path);
       }
     }
 
@@ -697,8 +750,35 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
         [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0],
       );
 
-      if (images.length > 0) {
-        const imgs = [...images, null, null, null, null, null].slice(0, 5);
+      if (imageUrls.length > 0) {
+        // 2. ดึงรูปเก่า
+        const existing = (await queryAsync(
+          `SELECT bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5
+           FROM tb_bulls_img WHERE ref_bulls_id = ?`,
+          [bulls_id],
+        )) as any[];
+
+        // 3. merge รูปเก่า + รูปใหม่
+        const oldSlots: (string | null)[] =
+          existing.length > 0
+            ? [
+                existing[0].bulls_image1,
+                existing[0].bulls_image2,
+                existing[0].bulls_image3,
+                existing[0].bulls_image4,
+                existing[0].bulls_image5,
+              ]
+            : [null, null, null, null, null];
+
+        let newIdx = 0;
+        const merged = oldSlots.map((slot) => {
+          if (slot === null && newIdx < imageUrls.length) {
+            return imageUrls[newIdx++];
+          }
+          return slot;
+        });
+
+        // 4. upsert
         await queryAsync(
           `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
            VALUES (?, ?, ?, ?, ?, ?)
@@ -706,7 +786,7 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
              bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
              bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
              bulls_image5 = VALUES(bulls_image5)`,
-          [bulls_id, ...imgs],
+          [bulls_id, ...merged],
         );
       }
 
@@ -722,76 +802,6 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
       .json({ error: "Internal server error", details: err.message });
   }
 });
-// router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
-//   try {
-//     const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } = req.body;
-//     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
-//     const images: string[] = [];
-
-//     if (uploadedFiles && uploadedFiles.length > 0) {
-//       for (const file of uploadedFiles) {
-//         const uploadResult = await cloudinary.uploader.upload(file.path, {
-//           folder: "vet_bulls",
-//         });
-//         images.push(uploadResult.secure_url);
-//         await fs.unlink(file.path);
-//       }
-//     }
-
-//     const rawBodyImages = req.body.images;
-//     if (rawBodyImages) {
-//       if (Array.isArray(rawBodyImages)) {
-//         images.push(...rawBodyImages.filter((img) => typeof img === "string" && img.trim()));
-//       } else if (typeof rawBodyImages === "string") {
-//         try {
-//           const parsed = JSON.parse(rawBodyImages);
-//           if (Array.isArray(parsed)) {
-//             images.push(...parsed.filter((img) => typeof img === "string" && img.trim()));
-//           } else if (rawBodyImages.trim()) {
-//             images.push(rawBodyImages.trim());
-//           }
-//         } catch {
-//           if (rawBodyImages.trim()) {
-//             images.push(rawBodyImages.trim());
-//           }
-//         }
-//       }
-//     }
-
-//     if (!vet_id || !bulls_id || images.length === 0)
-//       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบและอัพโหลดรูปอย่างน้อย 1 รูป" });
-
-//     await queryAsync("START TRANSACTION");
-//     try {
-//       // เพิ่มใน tb_vet_bulls
-//       await queryAsync(
-//         `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
-//          VALUES (?, ?, ?, ?)`,
-//         [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0]
-//       );
-
-//       // บันทึกรูป
-//       const imgs = [...images, null, null, null, null].slice(0, 5);
-//       await queryAsync(
-//         `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
-//          VALUES (?, ?, ?, ?, ?, ?)
-//          ON DUPLICATE KEY UPDATE
-//            bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
-//            bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
-//            bulls_image5 = VALUES(bulls_image5)`,
-//         [bulls_id, ...imgs]
-//       );
-
-//       await queryAsync("COMMIT");
-//       return res.status(201).json({ message: "เพิ่มวัวเข้าสต็อกสำเร็จ" });
-//     } catch (e) {
-//       await queryAsync("ROLLBACK");
-//       throw e;
-//     }
-//   } catch (err: any) {
-//     return res.status(500).json({ error: "Internal server error", details: err.message });
-//   }
-// });
 
 // ── แก้ไข stock + ราคา ────────────────────────────────────────────────────
 router.put("/vet-bulls/update/:vet_bull_id", async (req, res) => {
@@ -833,7 +843,7 @@ router.delete("/vet-bulls/delete/:vetBullId", async (req, res) => {
 
     const result: any = await queryAsync(
       "DELETE FROM tb_vet_bulls WHERE vet_bulls_id = ?",
-      [vetBullId]
+      [vetBullId],
     );
 
     if (result.affectedRows === 0) {
@@ -842,6 +852,8 @@ router.delete("/vet-bulls/delete/:vetBullId", async (req, res) => {
 
     return res.status(200).json({ message: "ลบสำเร็จ" });
   } catch (err: any) {
-    return res.status(500).json({ error: "Internal server error", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
   }
 });

@@ -667,61 +667,63 @@ router.post("/vet-bulls/bulls/create", async (req, res) => {
 });
 
 // ── เพิ่มวัวเข้าสต็อกหมอ + บันทึกรูป ────────────────────────────────────
-// router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
-//   try {
-//     const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
-//       req.body;
-
-//     if (!vet_id || !bulls_id)
-//       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
-
-//     // อัปโหลดรูปขึ้น Cloudinary เอง (เหมือนเกษตรกร)
-//     const images: string[] = [];
-//     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
-//     if (uploadedFiles && uploadedFiles.length > 0) {
-//       for (const file of uploadedFiles) {
-//         const uploadResult = await cloudinary.uploader.upload(file.path, {
-//           folder: "vet_bulls",
-//         });
-//         images.push(uploadResult.secure_url);
-//         await fs.unlink(file.path); // ลบไฟล์ชั่วคราว
-//       }
-//     }
-
-//     await queryAsync("START TRANSACTION");
-//     try {
-//       await queryAsync(
-//         `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
-//          VALUES (?, ?, ?, ?)`,
-//         [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0],
-//       );
-
-//       if (images.length > 0) {
-//         const imgs = [...images, null, null, null, null, null].slice(0, 5);
-//         await queryAsync(
-//           `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
-//            VALUES (?, ?, ?, ?, ?, ?)
-//            ON DUPLICATE KEY UPDATE
-//              bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
-//              bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
-//              bulls_image5 = VALUES(bulls_image5)`,
-//           [bulls_id, ...imgs],
-//         );
-//       }
-
-//       await queryAsync("COMMIT");
-//       return res.status(201).json({ message: "เพิ่มวัวเข้าสต็อกสำเร็จ" });
-//     } catch (e) {
-//       await queryAsync("ROLLBACK");
-//       throw e;
-//     }
-//   } catch (err: any) {
-//     return res
-//       .status(500)
-//       .json({ error: "Internal server error", details: err.message });
-//   }
-// });
 router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
+  try {
+    const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
+      req.body;
+
+    if (!vet_id || !bulls_id)
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+
+    // อัปโหลดรูปขึ้น Cloudinary เอง (เหมือนเกษตรกร)
+    const images: string[] = [];
+    const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      for (const file of uploadedFiles) {
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          folder: "vet_bulls",
+        });
+        images.push(uploadResult.secure_url);
+        await fs.unlink(file.path); // ลบไฟล์ชั่วคราว
+      }
+    }
+
+    await queryAsync("START TRANSACTION");
+    try {
+      await queryAsync(
+        `INSERT INTO tb_vet_bulls (ref_vetexperts_id, ref_bulls_id, bulls_semen_stock, bulls_price_per_dose)
+         VALUES (?, ?, ?, ?)`,
+        [vet_id, bulls_id, bulls_semen_stock || 0, bulls_price_per_dose || 0],
+      );
+
+      if (images.length > 0) {
+        const imgs = [...images, null, null, null, null, null].slice(0, 5);
+        await queryAsync(
+          `INSERT INTO tb_bulls_img (ref_bulls_id, bulls_image1, bulls_image2, bulls_image3, bulls_image4, bulls_image5)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             bulls_image1 = VALUES(bulls_image1), bulls_image2 = VALUES(bulls_image2),
+             bulls_image3 = VALUES(bulls_image3), bulls_image4 = VALUES(bulls_image4),
+             bulls_image5 = VALUES(bulls_image5)`,
+          [bulls_id, ...imgs],
+        );
+      }
+
+      await queryAsync("COMMIT");
+      return res.status(201).json({ message: "เพิ่มวัวเข้าสต็อกสำเร็จ" });
+    } catch (e) {
+      await queryAsync("ROLLBACK");
+      throw e;
+    }
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ error: "Internal server error", details: err.message });
+  }
+});
+
+
+router.post("/vets-bulls/add", upload.array("images", 5), async (req, res) => {
   try {
     const { vet_id, bulls_id, bulls_semen_stock, bulls_price_per_dose } =
       req.body;

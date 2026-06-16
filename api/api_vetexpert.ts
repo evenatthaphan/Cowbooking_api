@@ -65,7 +65,6 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     console.log("req.body:", req.body);
     const VetExperts = req.body;
 
-    // check fields
     if (
       !VetExperts.VetExpert_name ||
       !VetExperts.VetExpert_password ||
@@ -78,10 +77,8 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       return res.status(400).json({ error: "Address fields are required" });
     }
 
-    // handle license (FILE or URL)
     let licenseUrl: string | null = null;
 
-    // upload file
     if (req.file) {
       const uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "vet_experts",
@@ -90,23 +87,19 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       licenseUrl = uploadResult.secure_url;
     }
 
-    // fallback to URL from body
     if (!licenseUrl && VetExperts.VetExpert_PL) {
       licenseUrl = VetExperts.VetExpert_PL;
     }
 
-    // license → reject
     if (!licenseUrl) {
       return res.status(400).json({ error: "VetExpert license is required" });
     }
 
-    // hash password
     const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
-
     const profileImage =
       "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg";
 
-    // SQL
+    //
     const sql = `
       INSERT INTO tb_vetexperts (
         vetexperts_name,
@@ -122,8 +115,9 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
         vetexperts_license,
         vetexperts_status,
         vetexperts_loc_lat,
-        vetexperts_loc_long
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        vetexperts_loc_long,
+        fcm_token
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -137,10 +131,11 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
       VetExperts.district,
       VetExperts.locality,
       VetExperts.VetExpert_address || "",
-      licenseUrl, //
+      licenseUrl,
       0,
       VetExperts.lat || null,
       VetExperts.lng || null,
+      VetExperts.fcm_token || null, // 
     ];
 
     const result: any = await queryAsync(sql, values);
@@ -154,6 +149,100 @@ router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+// router.post("/register", upload.single("VetExpert_PL"), async (req, res) => {
+//   try {
+//     console.log("req.body:", req.body);
+//     const VetExperts = req.body;
+
+//     // check fields
+//     if (
+//       !VetExperts.VetExpert_name ||
+//       !VetExperts.VetExpert_password ||
+//       !VetExperts.phonenumber
+//     ) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+
+//     if (!VetExperts.province || !VetExperts.district || !VetExperts.locality) {
+//       return res.status(400).json({ error: "Address fields are required" });
+//     }
+
+//     // handle license (FILE or URL)
+//     let licenseUrl: string | null = null;
+
+//     // upload file
+//     if (req.file) {
+//       const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "vet_experts",
+//       });
+//       await fs.unlink(req.file.path);
+//       licenseUrl = uploadResult.secure_url;
+//     }
+
+//     // fallback to URL from body
+//     if (!licenseUrl && VetExperts.VetExpert_PL) {
+//       licenseUrl = VetExperts.VetExpert_PL;
+//     }
+
+//     // license → reject
+//     if (!licenseUrl) {
+//       return res.status(400).json({ error: "VetExpert license is required" });
+//     }
+
+//     // hash password
+//     const hashedPassword = await bcrypt.hash(VetExperts.VetExpert_password, 10);
+
+//     const profileImage =
+//       "https://i.pinimg.com/564x/a8/0e/36/a80e3690318c08114011145fdcfa3ddb.jpg";
+
+//     // SQL
+//     const sql = `
+//       INSERT INTO tb_vetexperts (
+//         vetexperts_name,
+//         vetexperts_hashpassword,
+//         vetexperts_password,
+//         vetexperts_phonenumber,
+//         vetexperts_email,
+//         vetexperts_profile_image,
+//         vetexperts_province,
+//         vetexperts_district,
+//         vetexperts_locality,
+//         vetexperts_address,
+//         vetexperts_license,
+//         vetexperts_status,
+//         vetexperts_loc_lat,
+//         vetexperts_loc_long
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//     `;
+
+//     const values = [
+//       VetExperts.VetExpert_name,
+//       hashedPassword,
+//       VetExperts.VetExpert_password,
+//       VetExperts.phonenumber,
+//       VetExperts.VetExpert_email || "",
+//       profileImage,
+//       VetExperts.province,
+//       VetExperts.district,
+//       VetExperts.locality,
+//       VetExperts.VetExpert_address || "",
+//       licenseUrl, //
+//       0,
+//       VetExperts.lat || null,
+//       VetExperts.lng || null,
+//     ];
+
+//     const result: any = await queryAsync(sql, values);
+
+//     res.status(201).json({
+//       message: "Registration successful (pending approval)",
+//       vetexperts_id: result.insertId,
+//     });
+//   } catch (err) {
+//     console.error("Error in /register:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 // update address
 router.put("/update-address/:id", async (req, res) => {
@@ -675,7 +764,7 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
     if (!vet_id || !bulls_id)
       return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
 
-    // อัปโหลดรูปขึ้น Cloudinary เอง (เหมือนเกษตรกร)
+    // อัปโหลดรูปขึ้น Cloudinary เอง
     const images: string[] = [];
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
     if (uploadedFiles && uploadedFiles.length > 0) {
@@ -721,7 +810,6 @@ router.post("/vet-bulls/add", upload.array("images", 5), async (req, res) => {
       .json({ error: "Internal server error", details: err.message });
   }
 });
-
 
 router.post("/vets-bulls/add", upload.array("images", 5), async (req, res) => {
   try {
